@@ -15,6 +15,20 @@ st.set_page_config(
     layout="centered" 
 )
 
+# -----------------------------------------------------------------
+# Sidebar: API Key Input
+# -----------------------------------------------------------------
+with st.sidebar:
+    st.header("🔑 OpenAI Settings")
+    user_api_key = st.text_input(
+        "Enter your OpenAI API Key",
+        type="password",
+        help="Your key is not stored and is only used for this session."
+    )
+    if not user_api_key:
+        st.warning("Please enter your API key to generate questions.")
+    st.divider()
+    
 # Custom CSS for your color scheme
 def apply_custom_css():
     st.markdown(f"""
@@ -325,7 +339,67 @@ with tab1:
                     st.subheader("Planned Job List:")
                     st.dataframe(pd.DataFrame(job_list))
                     
-                    # --- NEXT STEP: THE LLM LOOP WILL GO HERE ---
+                   # ... (Previous code: Planner creates job_list) ...
+                    
+                    # --- MAIN EXECUTION LOOP ---
+                    
+                    if not user_api_key:
+                        st.error("⛔ Execution Stopped: No API Key provided.")
+                    else:
+                        generated_questions = []
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
+
+                        for index, job in enumerate(job_list):
+                            # Update status
+                            status_text.text(f"Generating question {index + 1} of {len(job_list)}...")
+                            
+                            # 1. ENGINEER PROMPT (The "Expert")
+                            # We check the strategy to decide which function to call
+                            if job['strategy'] == "Segmented (2-Call)":
+                                # Call 1: Options
+                                sys_msg_1, user_msg_1 = prompt_engineer.create_options_prompt(job, example_banks)
+                                raw_options = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
+                                
+                                # Call 2: Stem (using the options from Call 1)
+                                sys_msg_2, user_msg_2 = prompt_engineer.create_stem_prompt(job, raw_options)
+                                raw_response = llm_service.call_llm([sys_msg_2, user_msg_2], user_api_key)
+                                
+                            else:
+                                # Holistic (Standard)
+                                sys_msg, user_msg = prompt_engineer.create_holistic_prompt(job, example_banks)
+                                raw_response = llm_service.call_llm([sys_msg, user_msg], user_api_key)
+
+                            # 2. FORMAT OUTPUT (The "Inspector")
+                            question_data, error = output_formatter.parse_response(raw_response)
+                            
+                            if error:
+                                st.error(f"Job {job['job_id']} Failed: {error}")
+                            else:
+                                generated_questions.append(question_data)
+
+                            # Update progress bar
+                            progress_bar.progress((index + 1) / len(job_list))
+                        
+                        # --- FINAL DISPLAY ---
+                        progress_bar.empty()
+                        status_text.empty()
+                        
+                        if generated_questions:
+                            st.success(f"Successfully generated {len(generated_questions)} questions!")
+                            
+                            # Convert to DataFrame
+                            final_df = pd.DataFrame(generated_questions)
+                            st.dataframe(final_df)
+                            
+                            # CSV Download Button
+                            csv = final_df.to_csv(index=False).encode('utf-8')
+                            st.download_button(
+                                label="📥 Download Questions as CSV",
+                                data=csv,
+                                file_name=f"generated_test_{cefr}_{batch_size}q.csv",
+                                mime="text/csv",
+                            )
                     
                 except Exception as e:
                     st.error(f"Error in Test Planner: {e}")
