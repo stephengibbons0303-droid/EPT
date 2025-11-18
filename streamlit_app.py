@@ -3,6 +3,7 @@ import pandas as pd
 import random
 import json
 import time
+import test_planner
 
 # -----------------------------------------------------------------
 # App Configuration & Styling
@@ -295,6 +296,7 @@ with tab1:
         st.info(" - " + "\n - ".join(suggestions))
     
     st.divider()
+
     
     # 7. Generate Button
     if st.button("Generate Batch", type="primary", use_container_width=True):
@@ -304,30 +306,29 @@ with tab1:
         else:
             with st.spinner(f"Generating {batch_size} questions..."):
                 
-                # --- This is where we will build the REAL backend ---
-                # For now, we'll just show the loaded bank data to prove it works
-                
-                # This part is still a DEMO of the *Job List*
-                # The next step is to replace this with our real backend modules.
-                
-                # --- MOCKUP of the 'test_planner.py' module ---
-                job_list = []
-                for i in range(batch_size):
-                    job_list.append({
-                        "job_id": i+1,
-                        "type": q_type,
-                        "cefr": cefr,
-                        "focus": random.choice(selected_focus),
-                        "context": context_topic if context_topic else "General"
-                    })
-                # --- End of MOCKUP ---
-
-                st.success("Generation Complete (Demo)!")
-                st.subheader("Planned Job List (What we'll send to the AI):")
-                st.dataframe(pd.DataFrame(job_list))
-                
-                st.subheader("Proof: 'Example Bank' is loaded and ready:")
-                st.dataframe(example_banks["grammar"].head())
+                # --- CALL THE REAL PLANNER ---
+                try:
+                    # We pass the UI values directly to the planner module.
+                    # Note: 'strategy' comes from the dropdown we added earlier.
+                    job_list = test_planner.create_job_list(
+                        total_questions=batch_size,
+                        q_type=q_type,
+                        cefr_target=cefr,
+                        selected_focus_list=selected_focus,
+                        context_topic=context_topic if context_topic else "General",
+                        generation_strategy=strategy 
+                    )
+                    
+                    st.success(f"Planner successfully created {len(job_list)} jobs!")
+                    
+                    # Display the plan (Debugging step - serves as confirmation)
+                    st.subheader("Planned Job List:")
+                    st.dataframe(pd.DataFrame(job_list))
+                    
+                    # --- NEXT STEP: THE LLM LOOP WILL GO HERE ---
+                    
+                except Exception as e:
+                    st.error(f"Error in Test Planner: {e}")
 
 
 # --- Tab 2: The Expert Controls ---
