@@ -16,20 +16,13 @@ st.set_page_config(
     page_title="Agentic Test Generator",
     layout="centered" 
 )
-
-# -----------------------------------------------------------------
-# Sidebar: API Key Input
-# -----------------------------------------------------------------
-with st.sidebar:
-    st.header("🔑 OpenAI Settings")
-    user_api_key = st.text_input(
-        "Enter your OpenAI API Key",
-        type="password",
-        help="Your key is not stored and is only used for this session."
-    )
-    if not user_api_key:
-        st.warning("Please enter your API key to generate questions.")
-    st.divider()
+# [ADD THIS LINE INSTEAD]
+# Load the key from Streamlit secrets
+try:
+    user_api_key = st.secrets["OPENAI_API_KEY"]
+except Exception:
+    st.error("❌ OpenAI API Key not found in Secrets. Please add it to your Streamlit Cloud settings.")
+    st.stop()
     
 # Custom CSS for your color scheme
 def apply_custom_css():
