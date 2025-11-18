@@ -262,6 +262,15 @@ with tab1:
             # For now, we'll keep it simple.
         )
 
+        # NEW: Strategy Selector
+        strategy = st.selectbox(
+            "Generation Strategy",
+            ("Holistic (1-Call)", "Segmented (2-Call)"),
+            help="Holistic: Fast. Segmented: High quality (Options first, then Stem).",
+            key="strategy"
+        )
+
+        # ... existing Batch Size code ...
         # 6. Batch Size
         batch_size = st.selectbox(
             "Batch Size",
