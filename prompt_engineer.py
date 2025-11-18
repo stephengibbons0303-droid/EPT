@@ -1,20 +1,32 @@
 import json
 import pandas as pd
 
+
 # --------------------------------------------------------------------------
-# Helper: Get Examples
+# Helper: Get Examples (FIXED: Robust Column Handling)
 # --------------------------------------------------------------------------
 def get_few_shot_examples(job, example_banks):
     """
     Retrieves 2-3 examples from the CSV based on CEFR and Type.
+    Robustly handles column name mismatches (e.g., extra spaces).
     """
     bank = example_banks.get(job['type'].lower())
-    if bank is None: return ""
+    if bank is None or bank.empty: 
+        return ""
     
-    # Filter by CEFR
-    relevant = bank[bank['CEFR rating'] == job['cefr']]
+    # 1. Clean column names to ensure we can find 'CEFR rating'
+    # This fixes the "KeyError" if your CSV has "CEFR rating " (with a space)
+    bank.columns = [c.strip() for c in bank.columns]
     
-    # Sample logic
+    # 2. Filter by CEFR
+    if 'CEFR rating' in bank.columns:
+        # Force both sides to string and strip whitespace for safe comparison
+        relevant = bank[bank['CEFR rating'].astype(str).str.strip() == str(job['cefr']).strip()]
+    else:
+        # If column is truly missing, just use random examples rather than crashing
+        relevant = bank
+
+    # 3. Sample logic
     if len(relevant) >= 2:
         samples = relevant.sample(2)
     elif len(bank) >= 2:
@@ -22,21 +34,20 @@ def get_few_shot_examples(job, example_banks):
     else:
         return "" 
 
-    # Format as string
+    # 4. Format as string
     output = ""
     for _, row in samples.iterrows():
-        # Stripping metadata to focus on content
+        # Use .get() to safely retrieve values even if columns are missing
         ex_dict = {
-            "Question Prompt": row.get("Question Prompt"),
-            "Answer A": row.get("Answer A"),
-            "Answer B": row.get("Answer B"),
-            "Answer C": row.get("Answer C"),
-            "Answer D": row.get("Answer D"),
-            "Correct Answer": row.get("Correct Answer")
+            "Question Prompt": row.get("Question Prompt", "N/A"),
+            "Answer A": row.get("Answer A", "N/A"),
+            "Answer B": row.get("Answer B", "N/A"),
+            "Answer C": row.get("Answer C", "N/A"),
+            "Answer D": row.get("Answer D", "N/A"),
+            "Correct Answer": row.get("Correct Answer", "N/A")
         }
         output += "### EXAMPLE:\n" + json.dumps(ex_dict) + "\n\n"
     return output
-
 
 # --------------------------------------------------------------------------
 # Strategy A: Holistic (1-Call) - FIXED AND ENHANCED
