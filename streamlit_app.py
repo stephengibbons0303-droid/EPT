@@ -4,7 +4,9 @@ import random
 import json
 import time
 import test_planner
-
+import prompt_engineer  # <--- Make sure this line exists!
+import llm_service
+import output_formatter
 # -----------------------------------------------------------------
 # App Configuration & Styling
 # -----------------------------------------------------------------
