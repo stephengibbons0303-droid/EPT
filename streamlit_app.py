@@ -25,39 +25,60 @@ except Exception:
     st.stop()
     
 # Custom CSS for your color scheme
-def apply_custom_css():
-    st.markdown("""
-    <style>
-        /* 1. MAIN APP BACKGROUND & TITLE */
-        [data-testid="stAppViewContainer"] > .main {
-            background-color: #FFFFFF; /* Ensure content area is white */
-        }
-        .stApp h1 {
-            color: #191970; /* Midnight Blue Title */
-        }
-        
-        /* 2. BUTTONS & PRIMARY CONTROLS (Mustard Yellow/Midnight Blue) */
-        .stButton > button {
-            background-color: #FFDB58; /* Mustard Yellow Background */
-            color: #191970; /* Midnight Blue Text */
-            border: 2px solid #191970;
-            font-weight: bold;
-        }
+st.markdown("""
+<style>
+    /* 1. MAIN BACKGROUND GRADIENT */
+    .stApp {
+        background: linear-gradient(135deg, #191970 0%, #121245 50%, #191970 100%);
+    }
 
-        /* 3. TABS (Yellow/Blue Contrast) */
-        .stTabs [data-baseweb="tab"] {
-            color: #191970; /* Midnight Blue text for inactive tabs */
-        }
-        .stTabs [data-baseweb="tab"][aria-selected="true"] {
-            border-bottom: 3px solid #FFDB58; /* Yellow active underline */
-            color: #191970; /* Midnight Blue text for active tab */
-        }
-        
-        /* 4. SELECTBOX/MULTISELECT (Backgrounds are harder to force globally, 
-           but these selectors handle the primary contrast.) */
-        
-    </style>
-    """, unsafe_allow_html=True)
+    /* 2. TITLES (White Text for contrast) */
+    h1 { color: #FFFFFF !important; font-weight: 800 !important; }
+    h2, h3 { color: #FFDB58 !important; } /* Use yellow for subheaders */
+
+    /* 3. GENERAL TEXT (White Text for contrast on dark background) */
+    p, label, .stMarkdown { color: #FFFFFF !important; }
+
+    /* 4. BUTTONS (Mustard Yellow/Midnight Blue Contrast) */
+    .stButton>button {
+        background-color: #FFDB58 !important; /* Mustard Yellow Background */
+        color: #191970 !important; /* Midnight Blue Text */
+        border: 2px solid #191970 !important;
+        border-radius: 8px !important; 
+        padding: 12px 24px !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 6px rgba(255, 219, 88, 0.5) !important;
+    }
+    .stButton>button:hover {
+        background-color: #e5c350 !important; /* Slightly darker yellow on hover */
+    }
+
+    /* 5. TABS (Yellow/White Contrast) */
+    .stTabs [data-baseweb="tab"] {
+        color: #FFFFFF !important; /* White text for inactive tabs */
+    }
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        border-bottom: 3px solid #FFDB58 !important; /* Yellow active underline */
+        color: #FFFFFF !important; /* Keep text white */
+        font-weight: 600 !important;
+    }
+
+    /* 6. HR Line (Accent) */
+    hr { border-color: #FFDB58 !important; }
+
+    /* 7. Alerts/File Uploader (Subtle Accent) */
+    .stAlert {
+        background-color: rgba(255, 219, 88, 0.1) !important; 
+        border: 1px solid #FFDB58 !important;
+        border-radius: 8px !important;
+    }
+    .stFileUploader {
+        border: 2px dashed #FFDB58 !important; 
+        border-radius: 8px !important;
+        padding: 15px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------
 # MODULE 1: Data Loader (Loads your CSVs)
