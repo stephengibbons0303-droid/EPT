@@ -79,9 +79,11 @@ def create_holistic_prompt(job, example_banks):
     
     INSTRUCTIONS:
     1. **STYLE/TONE (CRITICAL):** The question prompt must be written in the style of: **{micro_style}**.
-    2. Create 4 plausible options (A, B, C, D).
-    3. Write a question stem where ONLY one option is correct.
-    4. Ensure distractors are common learner errors.
+    2. **NEGATIVE CONSTRAINT (VERBOSITY/EXPLANATION):** Question prompts must be concise (max 1-2 sentences) and must **NOT** be explanatory, introductory, or descriptive (e.g., avoid preambles like "Imagine your friend said...").
+    3. **NEGATIVE CONSTRAINT (METALANGUAGE):** The question prompt must **NEVER** use grammar terminology (e.g., 'relative clause,' 'past participle,' 'non-defining'). Focus on simple gap-fills or direct transformations.
+    4. **NEGATIVE CONSTRAINT (LEXICAL OVERLAP):** Do not repeat the core test word, its root, or topic-specific low-frequency vocabulary in both the prompt and the options.
+    5. Create 4 plausible options (A, B, C, D) that are grammatically parallel.
+    6. Ensure distractors are common learner errors.
     
     Output Format:
     {{
@@ -124,10 +126,10 @@ def create_options_prompt(job, example_banks):
     TOPIC: {main_topic}
     
     RULES:
-    1. Provide 4 options (A, B, C, D).
-    2. Indicate which one is the Correct Answer.
-    3. The distractors must be plausible "near misses" or common errors.
-    4. All options must be grammatically parallel (e.g. all verbs, or all nouns).
+    1. **NEGATIVE CONSTRAINT (LEXICAL OVERLAP):** Do not use any form of the core test word or its root in the options. Options must be varied.
+    2. Provide 4 options (A, B, C, D) that are grammatically parallel.
+    3. Indicate which one is the Correct Answer.
+    4. The distractors must be plausible "near misses" or common errors appropriate for the CEFR level.
     
     Output Format:
     {{
@@ -162,9 +164,11 @@ def create_stem_prompt(job, options_json_string):
     
     INSTRUCTIONS:
     1. **STYLE/TONE (CRITICAL):** Write the sentence in the style of: **{micro_style}**.
-    2. Analyze the 'Correct Answer' vs the distractors.
-    3. Write a {job['cefr']} level sentence with a gap (or a question) where ONLY the Correct Answer fits.
-    4. The distractors must be clearly wrong in this specific context.
+    2. **NEGATIVE CONSTRAINT (VERBOSITY/EXPLANATION):** Question stems must be concise (max 1-2 sentences) and must **NOT** contain preambles (e.g., 'Imagine you are talking to...').
+    3. **NEGATIVE CONSTRAINT (METALANGUAGE):** The prompt must **NEVER** use grammar terminology.
+    4. **NEGATIVE CONSTRAINT (LEXICAL OVERLAP):** Do not repeat any words used in the answer options within the question stem (except for common function words like 'the', 'a', 'is').
+    5. Analyze the 'Correct Answer' vs the distractors.
+    6. Write a {job['cefr']} level sentence with a gap (or a direct transformation, like "John: 'What time is it?' Reported: ____") where ONLY the Correct Answer fits.
     
     Output Format:
     {{
