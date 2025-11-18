@@ -1,21 +1,49 @@
 import streamlit as st
 import pandas as pd
 import random
+import json
+import time
 
 # -----------------------------------------------------------------
 # App Configuration & Styling
 # -----------------------------------------------------------------
-# ... (all your existing code for set_page_config and apply_custom_css) ...
-st.set_page_config(layout="centered")
+
+# Set page config (centered layout, not wide)
+st.set_page_config(
+    page_title="Agentic Test Generator",
+    layout="centered" 
+)
+
+# Custom CSS for your color scheme
 def apply_custom_css():
     st.markdown(f"""
     <style>
-        /* ... (your CSS) ... */
+        /* Main title color */
+        .stApp h1 {{
+            color: #191970; /* Midnight Blue */
+        }}
+
+        /* Button color */
+        .stButton > button {{
+            background-color: #FFDB58; /* Gold */
+            color: #191970; /* Midnight Blue Text */
+            border: 2px solid #191970; /* Midnight Blue Border */
+            font-weight: bold;
+        }}
+
+        /* Sidebar and tab headers (optional, but good for branding) */
+        .stTabs [data-baseweb="tab"] {{
+            background-color: #f0f2f6;
+        }}
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {{
+            background-color: #FFFFFF;
+            border-bottom: 2px solid #FFDB58; /* Gold underline */
+        }}
     </style>
     """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------
-# REAL MODULE 1: Data Loader
+# MODULE 1: Data Loader (Loads your CSVs)
 # -----------------------------------------------------------------
 @st.cache_data  # <-- Caching is crucial!
 def load_example_banks():
@@ -24,7 +52,7 @@ def load_example_banks():
     It loads the CSVs from the root folder.
     """
     try:
-        # --- RENAME THESE to your actual filenames ---
+        # --- Make sure your filenames match these ---
         df_g = pd.read_csv("grammar_bank.csv")
         df_v = pd.read_csv("vocab_bank.csv")
         
@@ -43,30 +71,133 @@ def load_example_banks():
         return None
 
 # -----------------------------------------------------------------
-# MOCK FUNCTIONS (for UI dropdowns)
+# POPULATED FUNCTIONS (For UI Dropdowns)
 # -----------------------------------------------------------------
-# ... (all your existing get_focus_options and get_topic_suggestions functions) ...
+
 @st.cache_data
 def get_focus_options(q_type, cefr):
-    # ... (your existing logic) ...
+    """
+    This is the new, EXPANDED function for all Assessment Focus options.
+    """
     if q_type == "Grammar":
         if cefr == "A1":
-            return ["Present Simple ('be'/'have')", "Prepositions of Time ('on'/'in')"]
-        # ... (etc) ...
+            return [
+                "Present Simple ('be'/'have')", 
+                "Prepositions of Time ('on'/'in'/'at')", 
+                "Prepositions of Place ('on'/'in'/'at')",
+                "Possessive Adjectives", 
+                "Articles (a/an/the)",
+                "this/that/these/those",
+                "Plurals (regular/irregular)",
+                "Modals ('can'/'can't' for ability)"
+            ]
+        elif cefr == "A2":
+            return [
+                "Past Simple (regular/irregular)", 
+                "Countable/Uncountable Nouns (some/any)", 
+                "Comparatives & Superlatives", 
+                "Present Continuous",
+                "Future ('going to' vs. 'will')",
+                "like vs. would like",
+                "Adverbs of Frequency",
+                "Modals ('should'/'have to' for advice/obligation)"
+            ]
+        elif cefr == "B1":
+            return [
+                "Past Simple vs. Present Perfect", 
+                "Conditionals (Type 1 & 2)", 
+                "Modals of Obligation (must/have to/should)", 
+                "Reported Speech (basic statements/questions)", 
+                "Passive Voice (simple present/past)",
+                "Gerunds & Infinitives (basic)",
+                "Future Continuous",
+                "Common Phrasal Verbs"
+            ]
+        elif cefr == "B2":
+            return [
+                "Conditionals (Type 3 & Mixed)", 
+                "Passive (Causative - have/get something done)",
+                "Passive (all tenses)",
+                "Modals of Speculation (past/present)", 
+                "Relative Clauses (defining/non-defining)", 
+                "Reported Speech (advanced - suggest, advise)",
+                "Future Perfect",
+                "Gerunds & Infinitives (after specific verbs/prepositions)"
+            ]
+        elif cefr == "C1":
+            return [
+                "Inversion (e.g., 'Not only...')", 
+                "Conditionals (Advanced Mixed, implied)", 
+                "Passive (Advanced Forms, impersonal)", 
+                "Modals (subtle meaning, nuance)", 
+                "Future (Future Perfect Continuous)",
+                "Cleft Sentences (e.g., 'What I need is...')",
+                "Ellipsis",
+                "Advanced Phrasal Verbs & Idioms"
+            ]
+    
     if q_type == "Vocabulary":
-        if cefr == "A1" or cefr == "A2":
-            return ["Meaning-in-Sentence", "Collocation (Verb+Noun)"]
-        # ... (etc) ...
-    return ["Mock Option"] # Fallback
+        if cefr == "A1":
+            return [
+                "Category Membership", 
+                "Basic Antonym", 
+                "Meaning-in-Sentence (Context Clue)", 
+                "Basic Collocation (e.g., 'have breakfast')"
+            ]
+        elif cefr == "A2":
+            return [
+                "Meaning-in-Sentence (Context Clue)", 
+                "Collocation (Verb+Noun)", 
+                "Word Form (noun/verb/adj)", 
+                "Functional Usage (e.g., 'What for?')", 
+                "Basic Synonym"
+            ]
+        elif cefr == "B1":
+            return [
+                "Meaning-in-Sentence (Inference)", 
+                "Collocation (Adverb+Adj)", 
+                "Word Form (Affixes - un, re, able)", 
+                "Functional Usage (e.g., 'I'd rather...')", 
+                "Phrasal Verbs (common, separable/inseparable)"
+            ]
+        elif cefr == "B2":
+            return [
+                "Synonym (subtle difference)", 
+                "Collocation (idiomatic, e.g., 'take into account')", 
+                "Functional Usage (formal/informal register)", 
+                "Phrasal Verbs (less common)", 
+                "Word Form (noun/adj suffixes -tion, -ive)"
+            ]
+        elif cefr == "C1":
+            return [
+                "Synonym (high-level, low-frequency)", 
+                "Idiomatic Expressions", 
+                "Functional Usage (advanced nuance, persuasion)", 
+                "Register Trap (formal vs. academic)", 
+                "Collocation (academic, e.g., 'conduct research')"
+            ]
+    
+    # Fallback in case something goes wrong
+    return ["No options loaded for this level"]
 
 @st.cache_data
 def get_topic_suggestions(cefr):
-    # ... (your existing logic) ...
+    """
+    This is the populated function for all your Topic Suggestions.
+    """
     if cefr == "A1":
-        return ["Personal Information", "Family"]
-    # ... (etc) ...
-    return ["Mock Topic"] # Fallback
-
+        return ["Personal Information", "Family", "Food & Drink", "My Home", "Days & Times"]
+    elif cefr == "A2":
+        return ["Daily Routines", "Past Holidays", "Shopping", "Friends & Hobbies", "My Town", "Jobs"]
+    elif cefr == "B1":
+        return ["Work & Jobs", "The Environment", "Travel & Tourism", "Technology", "Health & Fitness", "Education"]
+    elif cefr == "B2":
+        return ["Media & News", "Crime & Society", "The Future", "Education Systems", "Business & Finance", "Global Issues"]
+    elif cefr == "C1":
+        return ["Philosophy & Ethics", "Scientific Research", "Global Politics", "Art & Literature", "Psychology"]
+    
+    # Fallback
+    return ["No topics loaded for this level"]
 
 # -----------------------------------------------------------------
 # Main Streamlit UI
@@ -75,26 +206,26 @@ def get_topic_suggestions(cefr):
 # Apply the custom colors
 apply_custom_css()
 
-# --- THIS IS THE NEW PART ---
 # Load the data ONCE at the start of the script.
 example_banks = load_example_banks()
-# -----------------------------
 
 st.title("🤖 AI Test Question Generator")
 
-# --- NEW: Check if data loaded ---
+# Check if data loaded
 if example_banks is None:
-    st.error("Failed to load example banks. Please check your CSV files and restart the app.")
+    st.error("STOP: Failed to load example banks. Please check your CSV file names and restart the app.")
     st.stop() # Halts the app if the CSVs are missing
 else:
-    st.success("Example banks loaded successfully!")
-# ----------------------------------
+    # This is just a quiet confirmation in the terminal,
+    # or you can use st.success() if you prefer a UI message
+    print("Example banks loaded successfully.")
 
 st.write("This tool uses a modular AI pipeline to generate test questions based on your exact specifications.")
 
-# ... (all your existing code for tabs, columns, and UI elements) ...
+# Create the two tabs based on your design
 tab1, tab2 = st.tabs(["🚀 Generator (Phase 1)", "🔧 Expert Controls (Phase 2)"])
 
+# --- Tab 1: The Main Generator ---
 with tab1:
     st.header("Batch Generation Settings")
 
@@ -108,7 +239,8 @@ with tab1:
         )
         
         # 3. Assessment Focus (Multi-Select)
-        cefr = st.session_state.get('cefr', 'A1')
+        # We need to get the *current* state of the widgets
+        cefr = st.session_state.get('cefr', 'A1') 
         q_type_key = st.session_state.get('q_type', 'Grammar')
         
         focus_options = get_focus_options(q_type_key, cefr)
@@ -117,20 +249,24 @@ with tab1:
             focus_options,
             key="assessment_focus"
         )
-    
+
     with col2:
         # 2. CEFR Target
         cefr = st.selectbox(
             "CEFR Target",
             ("A1", "A2", "B1", "B2", "C1"),
-            key="cefr"
+            key="cefr",
+            # This 'on_change' is a bit advanced but helps clear
+            # the focus list when the CEFR level changes.
+            # You may need a small callback function for it.
+            # For now, we'll keep it simple.
         )
 
         # 6. Batch Size
         batch_size = st.selectbox(
             "Batch Size",
             (1, 5, 10, 20, 30, 40, 50),
-            index=2,
+            index=2,  # Defaults to 10
             key="batch_size"
         )
     
@@ -143,39 +279,59 @@ with tab1:
         placeholder="e.g., 'A business email' or 'A story about a holiday'"
     )
     
-    with st.expander(f"View suggested topics for {cefr}...") :
-        suggestions = get_topic_suggestions(cefr)
+    # Get the *current* CEFR level for the expander title
+    current_cefr = st.session_state.get('cefr', 'A1')
+    with st.expander(f"View suggested topics for {current_cefr}...") :
+        suggestions = get_topic_suggestions(current_cefr)
         st.info(" - " + "\n - ".join(suggestions))
     
     st.divider()
     
     # 7. Generate Button
     if st.button("Generate Batch", type="primary", use_container_width=True):
+        # 1. Validate inputs
         if not selected_focus:
             st.error("Please select at least one 'Assessment Focus'.")
         else:
             with st.spinner(f"Generating {batch_size} questions..."):
                 
-                # --- THIS IS NO LONGER A MOCKUP ---
-                # This is where we will call our REAL backend functions.
-                # We'll pass them the `example_banks` we just loaded.
-                
-                # job_list = test_planner.create_job_list(q_type, cefr, selected_focus, batch_size, context_topic)
-                # results = []
-                # for job in job_list:
-                #   prompt = prompt_engineer.create_prompt(job, example_banks)
-                #   raw_response = llm_service.call_api(prompt)
-                #   ...etc...
-                
+                # --- This is where we will build the REAL backend ---
                 # For now, we'll just show the loaded bank data to prove it works
-                st.success("Generation Complete (Demo)!")
-                st.subheader("Proof: 'Example Bank' is loaded and ready:")
-                st.write("Showing first 5 rows of the loaded **Grammar** bank:")
-                st.dataframe(example_banks["grammar"].head())
-                st.write("Showing first 5 rows of the loaded **Vocabulary** bank:")
-                st.dataframe(example_banks["vocab"].head())
+                
+                # This part is still a DEMO of the *Job List*
+                # The next step is to replace this with our real backend modules.
+                
+                # --- MOCKUP of the 'test_planner.py' module ---
+                job_list = []
+                for i in range(batch_size):
+                    job_list.append({
+                        "job_id": i+1,
+                        "type": q_type,
+                        "cefr": cefr,
+                        "focus": random.choice(selected_focus),
+                        "context": context_topic if context_topic else "General"
+                    })
+                # --- End of MOCKUP ---
 
-# ... (rest of your code for Tab 2) ...
+                st.success("Generation Complete (Demo)!")
+                st.subheader("Planned Job List (What we'll send to the AI):")
+                st.dataframe(pd.DataFrame(job_list))
+                
+                st.subheader("Proof: 'Example Bank' is loaded and ready:")
+                st.dataframe(example_banks["grammar"].head())
+
+
+# --- Tab 2: The Expert Controls ---
 with tab2:
     st.header("🔧 Expert Refinement Controls")
-    # ... (etc) ...
+    st.info("This section is planned for Phase 2. It will hold the granular controls (Groups A-D) to refine single, existing questions.")
+    
+    # We can lay out the *disabled* controls as a preview
+    st.subheader("A. Structural Complexity Controls")
+    st.slider("Sentence length slider (words)", 6, 40, 15, disabled=True)
+    st.select_slider("Clause complexity slider", ["simple", "complex", "embedded"], disabled=True)
+    
+    st.subheader("C. Distractor Complexity Controls")
+    st.checkbox("Near-synonym trap", disabled=True)
+    st.checkbox("Collocation trap", disabled=True)
+    st.slider("Distractor Plausibility", 0.0, 1.0, 0.5, disabled=True)
