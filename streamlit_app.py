@@ -5,87 +5,68 @@ import random
 # -----------------------------------------------------------------
 # App Configuration & Styling
 # -----------------------------------------------------------------
-
-# Set page config (centered layout, not wide)
-st.set_page_config(
-    page_title="Agentic Test Generator",
-    layout="centered" 
-)
-
-# Custom CSS for your color scheme
+# ... (all your existing code for set_page_config and apply_custom_css) ...
+st.set_page_config(layout="centered")
 def apply_custom_css():
     st.markdown(f"""
     <style>
-        /* Main title color */
-        .stApp h1 {{
-            color: #191970; /* Midnight Blue */
-        }}
-
-        /* Button color */
-        .stButton > button {{
-            background-color: #FFDB58; /* Gold */
-            color: #191970; /* Midnight Blue Text */
-            border: 2px solid #191970; /* Midnight Blue Border */
-            font-weight: bold;
-        }}
-
-        /* Sidebar and tab headers (optional, but good for branding) */
-        .stTabs [data-baseweb="tab"] {{
-            background-color: #f0f2f6;
-        }}
-        .stTabs [data-baseweb="tab"][aria-selected="true"] {{
-            background-color: #FFFFFF;
-            border-bottom: 2px solid #FFDB58; /* Gold underline */
-        }}
-
+        /* ... (your CSS) ... */
     </style>
     """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------
-# Placeholder Data & Functions (Mocking our modules)
+# REAL MODULE 1: Data Loader
 # -----------------------------------------------------------------
+@st.cache_data  # <-- Caching is crucial!
+def load_example_banks():
+    """
+    This is our real data_loader module.
+    It loads the CSVs from the root folder.
+    """
+    try:
+        # --- RENAME THESE to your actual filenames ---
+        df_g = pd.read_csv("grammar_bank.csv")
+        df_v = pd.read_csv("vocab_bank.csv")
+        
+        # We'll also remove the GSE Score column as we discussed
+        if "GSE Score" in df_g.columns:
+            df_g = df_g.drop(columns=["GSE Score"])
+        if "GSE Score" in df_v.columns:
+            df_v = df_v.drop(columns=["GSE Score"])
+            
+        return {"grammar": df_g, "vocab": df_v}
+    except FileNotFoundError:
+        st.error("Error: Example bank CSVs not found. Make sure 'grammar_bank.csv' and 'vocab_bank.csv' are in the same folder as the app.")
+        return None # Return None to signal an error
+    except Exception as e:
+        st.error(f"Error loading CSVs: {e}")
+        return None
 
+# -----------------------------------------------------------------
+# MOCK FUNCTIONS (for UI dropdowns)
+# -----------------------------------------------------------------
+# ... (all your existing get_focus_options and get_topic_suggestions functions) ...
 @st.cache_data
 def get_focus_options(q_type, cefr):
-    """
-    MOCK FUNCTION: This will eventually be powered by a CSV or 
-    our data_loader.py to get real options.
-    """
+    # ... (your existing logic) ...
     if q_type == "Grammar":
         if cefr == "A1":
-            return ["Present Simple ('be'/'have')", "Prepositions of Time ('on'/'in')", "Possessive Adjectives"]
-        elif cefr == "A2":
-            return ["Past Simple (irregular)", "Countable/Uncountable", "Comparatives", "Present Continuous"]
-        elif cefr == "B1":
-            return ["Past Simple vs. Present Perfect", "Conditionals (Type 1)", "Modals of Obligation", "Reported Speech (basic)"]
-        elif cefr == "B2":
-            return ["Conditionals (Mixed)", "Passive (Causative)", "Modals (Speculation)", "Relative Clauses (advanced)"]
-        else:
-            return ["Inversion", "Conditionals (Advanced Mixed)", "Passive (Advanced Forms)"]
-    
+            return ["Present Simple ('be'/'have')", "Prepositions of Time ('on'/'in')"]
+        # ... (etc) ...
     if q_type == "Vocabulary":
         if cefr == "A1" or cefr == "A2":
-            return ["Meaning-in-Sentence", "Collocation (Verb+Noun)", "Word Form (noun/verb/adj)", "Category Membership", "Basic Antonym"]
-        elif cefr == "B1":
-            return ["Meaning-in-Sentence (Inference)", "Collocation (Adverb+Adj)", "Word Form (Affixes)", "Functional Usage"]
-        else:
-            return ["Synonym (subtle difference)", "Collocation (idiomatic)", "Functional Usage (formal/informal)", "Register Trap"]
+            return ["Meaning-in-Sentence", "Collocation (Verb+Noun)"]
+        # ... (etc) ...
+    return ["Mock Option"] # Fallback
 
 @st.cache_data
 def get_topic_suggestions(cefr):
-    """
-    MOCK FUNCTION: Returns a list of suggested topics.
-    """
+    # ... (your existing logic) ...
     if cefr == "A1":
-        return ["Personal Information", "Family", "Food & Drink", "My Home"]
-    elif cefr == "A2":
-        return ["Daily Routines", "Past Holidays", "Shopping", "Friends & Hobbies"]
-    elif cefr == "B1":
-        return ["Work & Jobs", "The Environment", "Travel & Tourism", "Technology", "Health"]
-    elif cefr == "B2":
-        return ["Media & News", "Crime & Society", "The Future", "Education Systems"]
-    else:
-        return ["Philosophy & Ethics", "Scientific Research", "Global Politics", "Art & Literature"]
+        return ["Personal Information", "Family"]
+    # ... (etc) ...
+    return ["Mock Topic"] # Fallback
+
 
 # -----------------------------------------------------------------
 # Main Streamlit UI
@@ -94,13 +75,26 @@ def get_topic_suggestions(cefr):
 # Apply the custom colors
 apply_custom_css()
 
+# --- THIS IS THE NEW PART ---
+# Load the data ONCE at the start of the script.
+example_banks = load_example_banks()
+# -----------------------------
+
 st.title("🤖 AI Test Question Generator")
+
+# --- NEW: Check if data loaded ---
+if example_banks is None:
+    st.error("Failed to load example banks. Please check your CSV files and restart the app.")
+    st.stop() # Halts the app if the CSVs are missing
+else:
+    st.success("Example banks loaded successfully!")
+# ----------------------------------
+
 st.write("This tool uses a modular AI pipeline to generate test questions based on your exact specifications.")
 
-# Create the two tabs based on your design
+# ... (all your existing code for tabs, columns, and UI elements) ...
 tab1, tab2 = st.tabs(["🚀 Generator (Phase 1)", "🔧 Expert Controls (Phase 2)"])
 
-# --- Tab 1: The Main Generator ---
 with tab1:
     st.header("Batch Generation Settings")
 
@@ -114,9 +108,8 @@ with tab1:
         )
         
         # 3. Assessment Focus (Multi-Select)
-        # This is now dependent on q_type and cefr
-        cefr = st.session_state.get('cefr', 'A1') # Get CEFR from session state
-        q_type_key = st.session_state.get('q_type', 'Grammar') # Get Type from session state
+        cefr = st.session_state.get('cefr', 'A1')
+        q_type_key = st.session_state.get('q_type', 'Grammar')
         
         focus_options = get_focus_options(q_type_key, cefr)
         selected_focus = st.multiselect(
@@ -124,7 +117,7 @@ with tab1:
             focus_options,
             key="assessment_focus"
         )
-
+    
     with col2:
         # 2. CEFR Target
         cefr = st.selectbox(
@@ -137,7 +130,7 @@ with tab1:
         batch_size = st.selectbox(
             "Batch Size",
             (1, 5, 10, 20, 30, 40, 50),
-            index=2,  # Defaults to 10
+            index=2,
             key="batch_size"
         )
     
@@ -158,43 +151,31 @@ with tab1:
     
     # 7. Generate Button
     if st.button("Generate Batch", type="primary", use_container_width=True):
-        # --- This is where we call the backend ---
-        # 1. Validate inputs
         if not selected_focus:
             st.error("Please select at least one 'Assessment Focus'.")
         else:
-            with st.spinner(f"Generating {batch_size} questions... This may take a moment."):
-                # --- MOCKUP of the backend call ---
-                # In a real app, we would call our `test_planner` and
-                # loop, calling the `llm_service` for each job.
+            with st.spinner(f"Generating {batch_size} questions..."):
                 
-                # We'll just show the "Job List" for this demo
-                job_list = []
-                for i in range(batch_size):
-                    job_list.append({
-                        "job_id": i+1,
-                        "type": q_type,
-                        "cefr": cefr,
-                        "focus": random.choice(selected_focus),
-                        "context": context_topic
-                    })
+                # --- THIS IS NO LONGER A MOCKUP ---
+                # This is where we will call our REAL backend functions.
+                # We'll pass them the `example_banks` we just loaded.
                 
-                st.success("Batch Generation Complete!")
-                st.subheader("Planned Job List (Demo)")
-                st.write("This is the list of jobs our 'Test Planner' created. The app would now generate one question for each job.")
-                st.dataframe(pd.DataFrame(job_list))
+                # job_list = test_planner.create_job_list(q_type, cefr, selected_focus, batch_size, context_topic)
+                # results = []
+                # for job in job_list:
+                #   prompt = prompt_engineer.create_prompt(job, example_banks)
+                #   raw_response = llm_service.call_api(prompt)
+                #   ...etc...
+                
+                # For now, we'll just show the loaded bank data to prove it works
+                st.success("Generation Complete (Demo)!")
+                st.subheader("Proof: 'Example Bank' is loaded and ready:")
+                st.write("Showing first 5 rows of the loaded **Grammar** bank:")
+                st.dataframe(example_banks["grammar"].head())
+                st.write("Showing first 5 rows of the loaded **Vocabulary** bank:")
+                st.dataframe(example_banks["vocab"].head())
 
-
-# --- Tab 2: The Expert Controls ---
+# ... (rest of your code for Tab 2) ...
 with tab2:
     st.header("🔧 Expert Refinement Controls")
-    st.info("This section will hold the granular controls from your framework (Groups A-D) to refine single, existing questions.")
-    
-    st.subheader("A. Structural Complexity Controls")
-    st.slider("Sentence length slider (words)", 6, 40, 15)
-    st.select_slider("Clause complexity slider", ["simple", "complex", "embedded"])
-    
-    st.subheader("C. Distractor Complexity Controls")
-    st.checkbox("Near-synonym trap")
-    st.checkbox("Collocation trap")
-    st.slider("Distractor Plausibility", 0.0, 1.0, 0.5)
+    # ... (etc) ...
