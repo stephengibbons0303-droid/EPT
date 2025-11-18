@@ -26,29 +26,36 @@ except Exception:
     
 # Custom CSS for your color scheme
 def apply_custom_css():
-    st.markdown(f"""
+    st.markdown("""
     <style>
-        /* Main title color */
-        .stApp h1 {{
-            color: #191970; /* Midnight Blue */
-        }}
-
-        /* Button color */
-        .stButton > button {{
-            background-color: #FFDB58; /* Gold */
+        /* 1. MAIN APP BACKGROUND & TITLE */
+        [data-testid="stAppViewContainer"] > .main {
+            background-color: #FFFFFF; /* Ensure content area is white */
+        }
+        .stApp h1 {
+            color: #191970; /* Midnight Blue Title */
+        }
+        
+        /* 2. BUTTONS & PRIMARY CONTROLS (Mustard Yellow/Midnight Blue) */
+        .stButton > button {
+            background-color: #FFDB58; /* Mustard Yellow Background */
             color: #191970; /* Midnight Blue Text */
-            border: 2px solid #191970; /* Midnight Blue Border */
+            border: 2px solid #191970;
             font-weight: bold;
-        }}
+        }
 
-        /* Sidebar and tab headers (optional, but good for branding) */
-        .stTabs [data-baseweb="tab"] {{
-            background-color: #f0f2f6;
-        }}
-        .stTabs [data-baseweb="tab"][aria-selected="true"] {{
-            background-color: #FFFFFF;
-            border-bottom: 2px solid #FFDB58; /* Gold underline */
-        }}
+        /* 3. TABS (Yellow/Blue Contrast) */
+        .stTabs [data-baseweb="tab"] {
+            color: #191970; /* Midnight Blue text for inactive tabs */
+        }
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {
+            border-bottom: 3px solid #FFDB58; /* Yellow active underline */
+            color: #191970; /* Midnight Blue text for active tab */
+        }
+        
+        /* 4. SELECTBOX/MULTISELECT (Backgrounds are harder to force globally, 
+           but these selectors handle the primary contrast.) */
+        
     </style>
     """, unsafe_allow_html=True)
 
