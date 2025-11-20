@@ -34,7 +34,7 @@ st.markdown("""
     h2, h3 { color: #FFDB58 !important; }
     p, label, .stMarkdown { color: #FFFFFF !important; }
     
-    /* Button styling */
+    /* Button styling - aggressive selectors to override all button text */
     .stButton>button {
         background-color: #FFDB58 !important;
         color: #151556 !important;
@@ -45,6 +45,42 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(255, 219, 88, 0.5) !important;
     }
     .stButton>button:hover {
+        background-color: #e5c350 !important;
+        color: #151556 !important;
+    }
+    .stButton>button p {
+        color: #151556 !important;
+    }
+    .stButton>button span {
+        color: #151556 !important;
+    }
+    .stButton>button div {
+        color: #151556 !important;
+    }
+    .stButton button {
+        color: #151556 !important;
+    }
+    button[kind="primary"] {
+        background-color: #FFDB58 !important;
+        color: #151556 !important;
+    }
+    button[kind="primary"] p,
+    button[kind="primary"] span,
+    button[kind="primary"] div {
+        color: #151556 !important;
+    }
+    
+    /* Download buttons specifically */
+    .stDownloadButton>button {
+        background-color: #FFDB58 !important;
+        color: #151556 !important;
+    }
+    .stDownloadButton>button p,
+    .stDownloadButton>button span,
+    .stDownloadButton>button div {
+        color: #151556 !important;
+    }
+    .stDownloadButton>button:hover {
         background-color: #e5c350 !important;
         color: #151556 !important;
     }
@@ -157,6 +193,18 @@ st.markdown("""
     /* Captions */
     .stCaptionContainer, .caption {
         color: #CCCCCC !important;
+    }
+    
+    /* Universal override for yellow buttons only */
+    button[style*="background-color: rgb(255, 219, 88)"],
+    button[style*="background-color:#FFDB58"],
+    button[style*="background: rgb(255, 219, 88)"] {
+        color: #151556 !important;
+    }
+    button[style*="background-color: rgb(255, 219, 88)"] *,
+    button[style*="background-color:#FFDB58"] *,
+    button[style*="background: rgb(255, 219, 88)"] * {
+        color: #151556 !important;
     }
 </style>
 """, unsafe_allow_html=True)
