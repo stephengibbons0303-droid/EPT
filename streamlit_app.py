@@ -482,20 +482,17 @@ with tab1:
                                     raw_stage1 = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
                                     
                                     # Parse as array
-                                    stage1_batch, stage1_error = output_formatter.parse_response(raw_stage1)
+                                    stage1_data, stage1_error = output_formatter.parse_response(raw_stage1)
                                     if stage1_error:
                                         st.error(f"Batch failed at Stage 1: {stage1_error}")
                                         break
                                     
-                                    # Handle if response is wrapped in a dict with a key
-                                    if isinstance(stage1_batch, dict) and len(stage1_batch) == 1:
-                                        stage1_batch = list(stage1_batch.values())[0]
-                                    
-                                    if not isinstance(stage1_batch, list):
-                                        st.error("Stage 1 did not return an array. Please try again.")
+                                    # Extract array from response
+                                    stage1_data_list, extract_error = output_formatter.extract_array_from_response(stage1_data)
+                                    if extract_error:
+                                        st.error(f"Stage 1 array extraction failed: {extract_error}")
+                                        st.write("Raw response structure:", stage1_data)
                                         break
-                                    
-                                    stage1_data_list = stage1_batch
                                     
                                     status_text.text(f"Stage 2: Generating all distractors...")
                                     
@@ -503,19 +500,16 @@ with tab1:
                                     sys_msg_2, user_msg_2 = prompt_engineer.create_sequential_batch_stage2_prompt(job_list, stage1_data_list)
                                     raw_stage2 = llm_service.call_llm([sys_msg_2, user_msg_2], user_api_key)
                                     
-                                    stage2_batch, stage2_error = output_formatter.parse_response(raw_stage2)
+                                    stage2_data, stage2_error = output_formatter.parse_response(raw_stage2)
                                     if stage2_error:
                                         st.error(f"Batch failed at Stage 2: {stage2_error}")
                                         break
                                     
-                                    if isinstance(stage2_batch, dict) and len(stage2_batch) == 1:
-                                        stage2_batch = list(stage2_batch.values())[0]
-                                    
-                                    if not isinstance(stage2_batch, list):
-                                        st.error("Stage 2 did not return an array. Please try again.")
+                                    stage2_data_list, extract_error = output_formatter.extract_array_from_response(stage2_data)
+                                    if extract_error:
+                                        st.error(f"Stage 2 array extraction failed: {extract_error}")
+                                        st.write("Raw response structure:", stage2_data)
                                         break
-                                    
-                                    stage2_data_list = stage2_batch
                                     
                                     status_text.text(f"Stage 3: Quality validation...")
                                     
@@ -523,19 +517,16 @@ with tab1:
                                     sys_msg_3, user_msg_3 = prompt_engineer.create_sequential_batch_stage3_prompt(job_list, stage1_data_list, stage2_data_list)
                                     raw_stage3 = llm_service.call_llm([sys_msg_3, user_msg_3], user_api_key)
                                     
-                                    stage3_batch, stage3_error = output_formatter.parse_response(raw_stage3)
+                                    stage3_data, stage3_error = output_formatter.parse_response(raw_stage3)
                                     if stage3_error:
                                         st.error(f"Batch failed at Stage 3: {stage3_error}")
                                         break
                                     
-                                    if isinstance(stage3_batch, dict) and len(stage3_batch) == 1:
-                                        stage3_batch = list(stage3_batch.values())[0]
-                                    
-                                    if not isinstance(stage3_batch, list):
-                                        st.error("Stage 3 did not return an array. Please try again.")
+                                    stage3_data_list, extract_error = output_formatter.extract_array_from_response(stage3_data)
+                                    if extract_error:
+                                        st.error(f"Stage 3 array extraction failed: {extract_error}")
+                                        st.write("Raw response structure:", stage3_data)
                                         break
-                                    
-                                    stage3_data_list = stage3_batch
                                     
                                     # Now construct all final questions
                                     for i in range(len(stage1_data_list)):
