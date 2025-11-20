@@ -475,8 +475,9 @@ with tab1:
                             if job['strategy'] == "Sequential Batch (3-Call)":
                                 # BATCH MODE: Process entire batch in 3 calls
                                 if index == 0:  # Only execute on first iteration
+                                    st.info(f"🔍 Batch Processing Debug: Starting batch with {len(job_list)} jobs in job_list")
                                     status_text.text(f"Stage 1: Generating all stems with context clues...")
-                                    
+
                                     # Stage 1: ALL stems at once
                                     sys_msg_1, user_msg_1 = prompt_engineer.create_sequential_batch_stage1_prompt(job_list, example_banks)
                                     raw_stage1 = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
@@ -494,10 +495,17 @@ with tab1:
                                         st.write("Raw response structure:", stage1_data)
                                         break
 
+                                    # Debug output
+                                    st.info(f"Stage 1 Debug: Received {len(stage1_data_list)} items, expected {len(job_list)} items")
+
                                     # Validate we got the expected number of items
                                     if len(stage1_data_list) != len(job_list):
-                                        st.error(f"Stage 1 returned {len(stage1_data_list)} items but expected {len(job_list)} items.")
-                                        st.write("Stage 1 output:", stage1_data_list)
+                                        st.error(f"❌ Stage 1 COUNT MISMATCH: Returned {len(stage1_data_list)} items but expected {len(job_list)} items.")
+                                        st.error(f"The LLM did not generate all items despite explicit instructions.")
+                                        st.write("**Expected job count:**", len(job_list))
+                                        st.write("**Actual items received:**", len(stage1_data_list))
+                                        st.write("**Stage 1 output:**", stage1_data_list)
+                                        st.warning("💡 Try reducing batch size or using 'Sequential Per-Question' strategy instead.")
                                         break
 
                                     status_text.text(f"Stage 2: Generating all distractors...")
@@ -517,10 +525,13 @@ with tab1:
                                         st.write("Raw response structure:", stage2_data)
                                         break
 
+                                    # Debug output
+                                    st.info(f"Stage 2 Debug: Received {len(stage2_data_list)} items, expected {len(job_list)} items")
+
                                     # Validate we got the expected number of items
                                     if len(stage2_data_list) != len(job_list):
-                                        st.error(f"Stage 2 returned {len(stage2_data_list)} items but expected {len(job_list)} items.")
-                                        st.write("Stage 2 output:", stage2_data_list)
+                                        st.error(f"❌ Stage 2 COUNT MISMATCH: Returned {len(stage2_data_list)} items but expected {len(job_list)} items.")
+                                        st.write("**Stage 2 output:**", stage2_data_list)
                                         break
 
                                     status_text.text(f"Stage 3: Quality validation...")
@@ -540,13 +551,17 @@ with tab1:
                                         st.write("Raw response structure:", stage3_data)
                                         break
 
+                                    # Debug output
+                                    st.info(f"Stage 3 Debug: Received {len(stage3_data_list)} items, expected {len(job_list)} items")
+
                                     # Validate we got the expected number of items
                                     if len(stage3_data_list) != len(job_list):
-                                        st.error(f"Stage 3 returned {len(stage3_data_list)} items but expected {len(job_list)} items.")
-                                        st.write("Stage 3 output:", stage3_data_list)
+                                        st.error(f"❌ Stage 3 COUNT MISMATCH: Returned {len(stage3_data_list)} items but expected {len(job_list)} items.")
+                                        st.write("**Stage 3 output:**", stage3_data_list)
                                         break
 
                                     # Now construct all final questions
+                                    st.info(f"✓ All stages complete! Constructing {len(stage1_data_list)} final questions...")
                                     for i in range(len(stage1_data_list)):
                                         if i < len(stage2_data_list):
                                             stage1_data = stage1_data_list[i]
