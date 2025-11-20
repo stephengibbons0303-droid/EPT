@@ -412,8 +412,8 @@ with tab1:
 
         strategy = st.selectbox(
             "Generation Strategy",
-            ("Sequential Batch (3-Call)", "Sequential Per-Question (3-Call)", "Holistic (1-Call)", "Segmented (2-Call)"),
-            help="Sequential Batch: Highest quality, anti-repetition (3 calls total). Sequential Per-Question: 3 calls per question. Holistic: Fast. Segmented: Options first, then Stem.",
+            ("Sequential Batch (3-Call)", "Holistic (1-Call)", "Segmented (2-Call)"),
+            help="Sequential Batch: Highest quality, anti-repetition (3 calls total). Holistic: Fast. Segmented: Options first, then Stem.",
             key="strategy"
         )
 
@@ -671,7 +671,7 @@ with tab1:
                             st.session_state.last_batch = final_df
                             st.session_state.last_batch_strategy = strategy
                             
-                            if strategy in ["Sequential Batch (3-Call)", "Sequential Per-Question (3-Call)"]:
+                            if strategy == "Sequential Batch (3-Call)":
                                 st.session_state.sequential_stage1_data = pd.DataFrame(stage1_data_list)
                                 st.session_state.sequential_stage2_data = pd.DataFrame(stage2_data_list)
                                 st.session_state.sequential_stage3_data = pd.DataFrame(stage3_data_list)
@@ -712,7 +712,7 @@ with tab2:
             st.caption(f"Strategy used: {st.session_state.last_batch_strategy}")
             
             working_batch = st.session_state.last_batch.copy()
-            is_sequential_batch = (st.session_state.last_batch_strategy in ["Sequential Batch (3-Call)", "Sequential Per-Question (3-Call)"])
+            is_sequential_batch = (st.session_state.last_batch_strategy == "Sequential Batch (3-Call)")
         else:
             st.warning("No recent batch found. Please generate a batch in the Generator tab first.")
     
