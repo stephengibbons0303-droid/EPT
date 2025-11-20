@@ -412,8 +412,8 @@ with tab1:
 
         strategy = st.selectbox(
             "Generation Strategy",
-            ("Sequential (3-Call)", "Holistic (1-Call)", "Segmented (2-Call)"),
-            help="Sequential: Highest quality. Holistic: Fast. Segmented: Options first, then Stem.",
+            ("Sequential Batch (3-Call)", "Sequential Per-Question (3-Call)", "Holistic (1-Call)", "Segmented (2-Call)"),
+            help="Sequential Batch: Highest quality, anti-repetition (3 calls total). Sequential Per-Question: 3 calls per question. Holistic: Fast. Segmented: Options first, then Stem.",
             key="strategy"
         )
 
@@ -472,7 +472,109 @@ with tab1:
                         for index, job in enumerate(job_list):
                             status_text.text(f"Generating question {index + 1} of {len(job_list)}...")
                             
-                            if job['strategy'] == "Sequential (3-Call)":
+                            if job['strategy'] == "Sequential Batch (3-Call)":
+                                # BATCH MODE: Process entire batch in 3 calls
+                                if index == 0:  # Only execute on first iteration
+                                    status_text.text(f"Stage 1: Generating all stems with context clues...")
+                                    
+                                    # Stage 1: ALL stems at once
+                                    sys_msg_1, user_msg_1 = prompt_engineer.create_sequential_batch_stage1_prompt(job_list, example_banks)
+                                    raw_stage1 = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
+                                    
+                                    # Parse as array
+                                    stage1_batch, stage1_error = output_formatter.parse_response(raw_stage1)
+                                    if stage1_error:
+                                        st.error(f"Batch failed at Stage 1: {stage1_error}")
+                                        break
+                                    
+                                    # Handle if response is wrapped in a dict with a key
+                                    if isinstance(stage1_batch, dict) and len(stage1_batch) == 1:
+                                        stage1_batch = list(stage1_batch.values())[0]
+                                    
+                                    if not isinstance(stage1_batch, list):
+                                        st.error("Stage 1 did not return an array. Please try again.")
+                                        break
+                                    
+                                    stage1_data_list = stage1_batch
+                                    
+                                    status_text.text(f"Stage 2: Generating all distractors...")
+                                    
+                                    # Stage 2: ALL distractors at once
+                                    sys_msg_2, user_msg_2 = prompt_engineer.create_sequential_batch_stage2_prompt(job_list, stage1_data_list)
+                                    raw_stage2 = llm_service.call_llm([sys_msg_2, user_msg_2], user_api_key)
+                                    
+                                    stage2_batch, stage2_error = output_formatter.parse_response(raw_stage2)
+                                    if stage2_error:
+                                        st.error(f"Batch failed at Stage 2: {stage2_error}")
+                                        break
+                                    
+                                    if isinstance(stage2_batch, dict) and len(stage2_batch) == 1:
+                                        stage2_batch = list(stage2_batch.values())[0]
+                                    
+                                    if not isinstance(stage2_batch, list):
+                                        st.error("Stage 2 did not return an array. Please try again.")
+                                        break
+                                    
+                                    stage2_data_list = stage2_batch
+                                    
+                                    status_text.text(f"Stage 3: Quality validation...")
+                                    
+                                    # Stage 3: ALL validations at once
+                                    sys_msg_3, user_msg_3 = prompt_engineer.create_sequential_batch_stage3_prompt(job_list, stage1_data_list, stage2_data_list)
+                                    raw_stage3 = llm_service.call_llm([sys_msg_3, user_msg_3], user_api_key)
+                                    
+                                    stage3_batch, stage3_error = output_formatter.parse_response(raw_stage3)
+                                    if stage3_error:
+                                        st.error(f"Batch failed at Stage 3: {stage3_error}")
+                                        break
+                                    
+                                    if isinstance(stage3_batch, dict) and len(stage3_batch) == 1:
+                                        stage3_batch = list(stage3_batch.values())[0]
+                                    
+                                    if not isinstance(stage3_batch, list):
+                                        st.error("Stage 3 did not return an array. Please try again.")
+                                        break
+                                    
+                                    stage3_data_list = stage3_batch
+                                    
+                                    # Now construct all final questions
+                                    for i in range(len(stage1_data_list)):
+                                        if i < len(stage2_data_list):
+                                            stage1_data = stage1_data_list[i]
+                                            stage2_data = stage2_data_list[i]
+                                            
+                                            complete_sentence = stage1_data.get("Complete Sentence", "")
+                                            correct_answer = stage1_data.get("Correct Answer", "")
+                                            question_prompt = complete_sentence.replace(correct_answer, "____")
+                                            
+                                            options = [
+                                                stage2_data.get("Distractor A", ""),
+                                                stage2_data.get("Distractor B", ""),
+                                                stage2_data.get("Distractor C", ""),
+                                                correct_answer
+                                            ]
+                                            random.shuffle(options)
+                                            correct_letter = chr(65 + options.index(correct_answer))
+                                            
+                                            final_question = {
+                                                "Item Number": stage1_data.get("Item Number", ""),
+                                                "Assessment Focus": stage1_data.get("Assessment Focus", ""),
+                                                "Question Prompt": question_prompt,
+                                                "Answer A": options[0],
+                                                "Answer B": options[1],
+                                                "Answer C": options[2],
+                                                "Answer D": options[3],
+                                                "Correct Answer": correct_letter,
+                                                "CEFR rating": stage1_data.get("CEFR rating", ""),
+                                                "Category": stage1_data.get("Category", "")
+                                            }
+                                            generated_questions.append(final_question)
+                                    
+                                    # Break after processing entire batch
+                                    break
+                                
+                            elif job['strategy'] == "Sequential Per-Question (3-Call)":
+                                # PER-QUESTION MODE: Original implementation
                                 # Stage 1: Stem + Context Clue
                                 sys_msg_1, user_msg_1 = prompt_engineer.create_sequential_stage1_prompt(job, example_banks)
                                 raw_stage1 = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
@@ -578,7 +680,7 @@ with tab1:
                             st.session_state.last_batch = final_df
                             st.session_state.last_batch_strategy = strategy
                             
-                            if strategy == "Sequential (3-Call)":
+                            if strategy in ["Sequential Batch (3-Call)", "Sequential Per-Question (3-Call)"]:
                                 st.session_state.sequential_stage1_data = pd.DataFrame(stage1_data_list)
                                 st.session_state.sequential_stage2_data = pd.DataFrame(stage2_data_list)
                                 st.session_state.sequential_stage3_data = pd.DataFrame(stage3_data_list)
@@ -619,7 +721,7 @@ with tab2:
             st.caption(f"Strategy used: {st.session_state.last_batch_strategy}")
             
             working_batch = st.session_state.last_batch.copy()
-            is_sequential_batch = (st.session_state.last_batch_strategy == "Sequential (3-Call)")
+            is_sequential_batch = (st.session_state.last_batch_strategy in ["Sequential Batch (3-Call)", "Sequential Per-Question (3-Call)"])
         else:
             st.warning("No recent batch found. Please generate a batch in the Generator tab first.")
     
