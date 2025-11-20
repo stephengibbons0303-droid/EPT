@@ -641,6 +641,7 @@ with tab1:
                             st.session_state.last_batch = final_df
                             st.session_state.last_batch_strategy = strategy
 
+                            
                             if strategy == "Sequential Batch (3-Call)":
                                 st.session_state.sequential_stage1_data = pd.DataFrame(stage1_data_list)
                                 st.session_state.sequential_stage2_data = pd.DataFrame(stage2_data_list)
