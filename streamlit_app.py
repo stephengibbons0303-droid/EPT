@@ -13,8 +13,8 @@ import output_formatter
 # -----------------------------------------------------------------
 
 st.set_page_config(
-    page_title="Agentic Test Generator",
-    layout="centered" 
+    page_title="Agentic Test Generator - DEBUG MODE",
+    layout="wide"  # Changed to wide for debug panels
 )
 
 # Load the key from Streamlit secrets
@@ -24,7 +24,7 @@ except Exception:
     st.error("❌ OpenAI API Key not found in Secrets. Please add it to your Streamlit Cloud settings.")
     st.stop()
     
-# Custom CSS
+# Custom CSS (same as original)
 st.markdown("""
 <style>
     .stApp {
@@ -34,7 +34,6 @@ st.markdown("""
     h2, h3 { color: #FFDB58 !important; }
     p, label, .stMarkdown { color: #FFFFFF !important; }
     
-    /* Button styling - aggressive selectors to override all button text */
     .stButton>button {
         background-color: #FFDB58 !important;
         color: #151556 !important;
@@ -48,44 +47,12 @@ st.markdown("""
         background-color: #e5c350 !important;
         color: #151556 !important;
     }
-    .stButton>button p {
-        color: #151556 !important;
-    }
-    .stButton>button span {
-        color: #151556 !important;
-    }
-    .stButton>button div {
-        color: #151556 !important;
-    }
-    .stButton button {
-        color: #151556 !important;
-    }
-    button[kind="primary"] {
-        background-color: #FFDB58 !important;
-        color: #151556 !important;
-    }
-    button[kind="primary"] p,
-    button[kind="primary"] span,
-    button[kind="primary"] div {
-        color: #151556 !important;
-    }
     
-    /* Download buttons specifically */
     .stDownloadButton>button {
         background-color: #FFDB58 !important;
         color: #151556 !important;
     }
-    .stDownloadButton>button p,
-    .stDownloadButton>button span,
-    .stDownloadButton>button div {
-        color: #151556 !important;
-    }
-    .stDownloadButton>button:hover {
-        background-color: #e5c350 !important;
-        color: #151556 !important;
-    }
     
-    /* Tab styling */
     .stTabs [data-baseweb="tab"] {
         color: #FFFFFF !important;
     }
@@ -97,7 +64,6 @@ st.markdown("""
     
     hr { border-color: #FFDB58 !important; }
     
-    /* Alert/Info boxes - white background with dark text */
     .stAlert {
         background-color: rgba(255, 255, 255, 0.95) !important; 
         border: 1px solid #FFDB58 !important;
@@ -108,14 +74,12 @@ st.markdown("""
         color: #151556 !important;
     }
     
-    /* File uploader */
     .stFileUploader {
         border: 2px dashed #FFDB58 !important; 
         border-radius: 8px !important;
         padding: 15px !important;
     }
     
-    /* Expander - white background with dark text */
     .streamlit-expanderHeader {
         background-color: rgba(255, 255, 255, 0.1) !important;
         color: #FFFFFF !important;
@@ -131,7 +95,6 @@ st.markdown("""
         color: #151556 !important;
     }
     
-    /* Input fields - white background with dark text */
     .stTextInput>div>div>input,
     .stSelectbox>div>div>div,
     .stMultiSelect>div>div>div {
@@ -139,7 +102,6 @@ st.markdown("""
         color: #151556 !important;
     }
     
-    /* Dropdown menus */
     [data-baseweb="select"] {
         background-color: #FFFFFF !important;
     }
@@ -147,7 +109,6 @@ st.markdown("""
         color: #151556 !important;
     }
     
-    /* Data editor/table */
     .stDataFrame {
         background-color: #FFFFFF !important;
     }
@@ -155,7 +116,6 @@ st.markdown("""
         color: #151556 !important;
     }
     
-    /* Success messages */
     .stSuccess {
         background-color: rgba(200, 255, 200, 0.95) !important;
         color: #151556 !important;
@@ -164,7 +124,6 @@ st.markdown("""
         color: #151556 !important;
     }
     
-    /* Warning messages */
     .stWarning {
         background-color: rgba(255, 243, 205, 0.95) !important;
         color: #151556 !important;
@@ -173,7 +132,6 @@ st.markdown("""
         color: #151556 !important;
     }
     
-    /* Error messages */
     .stError {
         background-color: rgba(255, 200, 200, 0.95) !important;
         color: #151556 !important;
@@ -182,7 +140,6 @@ st.markdown("""
         color: #151556 !important;
     }
     
-    /* Radio buttons */
     .stRadio > label {
         color: #FFFFFF !important;
     }
@@ -190,21 +147,23 @@ st.markdown("""
         color: #FFFFFF !important;
     }
     
-    /* Captions */
     .stCaptionContainer, .caption {
         color: #CCCCCC !important;
     }
     
-    /* Universal override for yellow buttons only */
-    button[style*="background-color: rgb(255, 219, 88)"],
-    button[style*="background-color:#FFDB58"],
-    button[style*="background: rgb(255, 219, 88)"] {
-        color: #151556 !important;
+    /* Debug panel styling */
+    .debug-panel {
+        background-color: rgba(30, 30, 30, 0.95) !important;
+        border: 2px solid #FFDB58 !important;
+        border-radius: 8px !important;
+        padding: 15px !important;
+        margin: 10px 0 !important;
     }
-    button[style*="background-color: rgb(255, 219, 88)"] *,
-    button[style*="background-color:#FFDB58"] *,
-    button[style*="background: rgb(255, 219, 88)"] * {
-        color: #151556 !important;
+    
+    .debug-header {
+        color: #FFDB58 !important;
+        font-weight: bold !important;
+        margin-bottom: 10px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -362,6 +321,8 @@ if 'sequential_stage2_data' not in st.session_state:
     st.session_state.sequential_stage2_data = None
 if 'sequential_stage3_data' not in st.session_state:
     st.session_state.sequential_stage3_data = None
+if 'debug_logs' not in st.session_state:
+    st.session_state.debug_logs = []
 
 # -----------------------------------------------------------------
 # Main UI
@@ -369,15 +330,16 @@ if 'sequential_stage3_data' not in st.session_state:
 
 example_banks = load_example_banks()
 
-st.title("🤖 AI Test Question Generator")
+st.title("🤖 AI Test Question Generator - DEBUG MODE")
+st.caption("Enhanced diagnostic version with full pipeline visibility")
 
 if example_banks is None:
     st.error("STOP: Failed to load example banks.")
     st.stop()
 
-st.write("This tool uses a modular AI pipeline to generate test questions based on your exact specifications.")
+st.write("This debug version provides complete visibility into the Sequential Batch generation process.")
 
-tab1, tab2 = st.tabs(["🚀 Generator", "🔧 Refinement Workshop"])
+tab1, tab2, tab3 = st.tabs(["🚀 Generator", "🔧 Refinement Workshop", "🐛 Debug Logs"])
 
 # =============================
 # TAB 1: GENERATOR
@@ -419,7 +381,7 @@ with tab1:
 
         batch_size = st.selectbox(
             "Batch Size",
-            (1, 5, 10, 20, 30, 40, 50),
+            (1, 2, 5, 10, 20, 30, 40, 50),
             index=2,
             key="batch_size"
         )
@@ -443,6 +405,9 @@ with tab1:
         if not selected_focus:
             st.error("Please select at least one 'Assessment Focus'.")
         else:
+            # Clear previous debug logs
+            st.session_state.debug_logs = []
+            
             with st.spinner(f"Generating {batch_size} questions..."):
                 try:
                     job_list = test_planner.create_job_list(
@@ -475,60 +440,122 @@ with tab1:
                             if job['strategy'] == "Sequential Batch (3-Call)":
                                 # BATCH MODE: Process entire batch in 3 calls
                                 if index == 0:  # Only execute on first iteration
+                                    st.session_state.debug_logs.append("="*80)
+                                    st.session_state.debug_logs.append("SEQUENTIAL BATCH MODE - STARTING")
+                                    st.session_state.debug_logs.append(f"Batch size: {len(job_list)} questions")
+                                    st.session_state.debug_logs.append("="*80)
+                                    
                                     status_text.text(f"Stage 1: Generating all stems with context clues...")
                                     
                                     # Stage 1: ALL stems at once
+                                    st.session_state.debug_logs.append("\n--- STAGE 1: PROMPT GENERATION ---")
                                     sys_msg_1, user_msg_1 = prompt_engineer.create_sequential_batch_stage1_prompt(job_list, example_banks)
-                                    raw_stage1 = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
+                                    st.session_state.debug_logs.append(f"System message length: {len(sys_msg_1)} chars")
+                                    st.session_state.debug_logs.append(f"User message length: {len(user_msg_1)} chars")
                                     
-                                    # Parse as array
+                                    st.session_state.debug_logs.append("\n--- STAGE 1: API CALL ---")
+                                    raw_stage1 = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
+                                    st.session_state.debug_logs.append(f"Raw response length: {len(raw_stage1)} chars")
+                                    st.session_state.debug_logs.append(f"Raw response preview (first 500 chars):\n{raw_stage1[:500]}")
+                                    
+                                    # Create expandable debug section for Stage 1
+                                    with st.expander("🔍 DEBUG: Stage 1 Raw Response", expanded=True):
+                                        st.text_area("Complete Raw LLM Response", raw_stage1, height=300, key="debug_stage1_raw")
+                                        st.caption(f"Response length: {len(raw_stage1)} characters")
+                                    
+                                    st.session_state.debug_logs.append("\n--- STAGE 1: PARSING ---")
                                     stage1_data, stage1_error = output_formatter.parse_response(raw_stage1)
+                                    
                                     if stage1_error:
-                                        st.error(f"Batch failed at Stage 1: {stage1_error}")
+                                        st.session_state.debug_logs.append(f"PARSING ERROR: {stage1_error}")
+                                        st.error(f"Batch failed at Stage 1 Parsing: {stage1_error}")
+                                        with st.expander("🔍 DEBUG: Stage 1 Parsing Error Details", expanded=True):
+                                            st.error(f"Error: {stage1_error}")
+                                            st.write("Raw response type:", type(raw_stage1))
+                                            st.write("Response starts with:", raw_stage1[:100] if raw_stage1 else "Empty")
                                         break
+                                    
+                                    st.session_state.debug_logs.append(f"Parsed data type: {type(stage1_data)}")
+                                    st.session_state.debug_logs.append(f"Parsed data structure: {json.dumps(stage1_data, indent=2)[:500]}...")
                                     
                                     # Extract array from response
+                                    st.session_state.debug_logs.append("\n--- STAGE 1: ARRAY EXTRACTION ---")
                                     stage1_data_list, extract_error = output_formatter.extract_array_from_response(stage1_data)
+                                    
                                     if extract_error:
+                                        st.session_state.debug_logs.append(f"EXTRACTION ERROR: {extract_error}")
                                         st.error(f"Stage 1 array extraction failed: {extract_error}")
-                                        st.write("Raw response structure:", stage1_data)
+                                        with st.expander("🔍 DEBUG: Stage 1 Array Extraction Error", expanded=True):
+                                            st.error(f"Error: {extract_error}")
+                                            st.write("Parsed data structure:", stage1_data)
+                                            st.write("Data type:", type(stage1_data))
+                                            if isinstance(stage1_data, dict):
+                                                st.write("Dictionary keys:", list(stage1_data.keys()))
                                         break
                                     
-                                    status_text.text(f"Stage 2: Generating all distractors...")
+                                    st.session_state.debug_logs.append(f"Extracted {len(stage1_data_list)} items from Stage 1")
                                     
-                                    # Stage 2: ALL distractors at once
+                                    with st.expander("🔍 DEBUG: Stage 1 Extracted Data", expanded=False):
+                                        st.write(f"Successfully extracted {len(stage1_data_list)} questions")
+                                        st.json(stage1_data_list)
+                                    
+                                    # Stage 2
+                                    status_text.text(f"Stage 2: Generating all distractors...")
+                                    st.session_state.debug_logs.append("\n--- STAGE 2: PROMPT GENERATION ---")
+                                    
                                     sys_msg_2, user_msg_2 = prompt_engineer.create_sequential_batch_stage2_prompt(job_list, stage1_data_list)
+                                    st.session_state.debug_logs.append(f"User message length: {len(user_msg_2)} chars")
+                                    
+                                    st.session_state.debug_logs.append("\n--- STAGE 2: API CALL ---")
                                     raw_stage2 = llm_service.call_llm([sys_msg_2, user_msg_2], user_api_key)
+                                    st.session_state.debug_logs.append(f"Raw response length: {len(raw_stage2)} chars")
+                                    
+                                    with st.expander("🔍 DEBUG: Stage 2 Raw Response", expanded=False):
+                                        st.text_area("Complete Raw LLM Response", raw_stage2, height=300, key="debug_stage2_raw")
                                     
                                     stage2_data, stage2_error = output_formatter.parse_response(raw_stage2)
                                     if stage2_error:
+                                        st.session_state.debug_logs.append(f"STAGE 2 PARSING ERROR: {stage2_error}")
                                         st.error(f"Batch failed at Stage 2: {stage2_error}")
                                         break
                                     
                                     stage2_data_list, extract_error = output_formatter.extract_array_from_response(stage2_data)
                                     if extract_error:
+                                        st.session_state.debug_logs.append(f"STAGE 2 EXTRACTION ERROR: {extract_error}")
                                         st.error(f"Stage 2 array extraction failed: {extract_error}")
-                                        st.write("Raw response structure:", stage2_data)
+                                        with st.expander("🔍 DEBUG: Stage 2 Extraction Error", expanded=True):
+                                            st.write("Error:", extract_error)
+                                            st.json(stage2_data)
                                         break
                                     
-                                    status_text.text(f"Stage 3: Quality validation...")
+                                    st.session_state.debug_logs.append(f"Extracted {len(stage2_data_list)} items from Stage 2")
                                     
-                                    # Stage 3: ALL validations at once
+                                    # Stage 3
+                                    status_text.text(f"Stage 3: Quality validation...")
+                                    st.session_state.debug_logs.append("\n--- STAGE 3: QUALITY VALIDATION ---")
+                                    
                                     sys_msg_3, user_msg_3 = prompt_engineer.create_sequential_batch_stage3_prompt(job_list, stage1_data_list, stage2_data_list)
                                     raw_stage3 = llm_service.call_llm([sys_msg_3, user_msg_3], user_api_key)
                                     
+                                    with st.expander("🔍 DEBUG: Stage 3 Raw Response", expanded=False):
+                                        st.text_area("Complete Raw LLM Response", raw_stage3, height=300, key="debug_stage3_raw")
+                                    
                                     stage3_data, stage3_error = output_formatter.parse_response(raw_stage3)
                                     if stage3_error:
+                                        st.session_state.debug_logs.append(f"STAGE 3 PARSING ERROR: {stage3_error}")
                                         st.error(f"Batch failed at Stage 3: {stage3_error}")
                                         break
                                     
                                     stage3_data_list, extract_error = output_formatter.extract_array_from_response(stage3_data)
                                     if extract_error:
+                                        st.session_state.debug_logs.append(f"STAGE 3 EXTRACTION ERROR: {extract_error}")
                                         st.error(f"Stage 3 array extraction failed: {extract_error}")
-                                        st.write("Raw response structure:", stage3_data)
                                         break
                                     
-                                    # Now construct all final questions
+                                    st.session_state.debug_logs.append(f"Extracted {len(stage3_data_list)} items from Stage 3")
+                                    
+                                    # Construct final questions
+                                    st.session_state.debug_logs.append("\n--- FINAL ASSEMBLY ---")
                                     for i in range(len(stage1_data_list)):
                                         if i < len(stage2_data_list):
                                             stage1_data = stage1_data_list[i]
@@ -560,72 +587,10 @@ with tab1:
                                                 "Category": stage1_data.get("Category", "")
                                             }
                                             generated_questions.append(final_question)
+                                            st.session_state.debug_logs.append(f"Assembled question {i+1}: {stage1_data.get('Item Number', '')}")
                                     
-                                    # Break after processing entire batch
+                                    st.session_state.debug_logs.append(f"\nTOTAL QUESTIONS ASSEMBLED: {len(generated_questions)}")
                                     break
-                                
-                            elif job['strategy'] == "Sequential Per-Question (3-Call)":
-                                # PER-QUESTION MODE: Original implementation
-                                # Stage 1: Stem + Context Clue
-                                sys_msg_1, user_msg_1 = prompt_engineer.create_sequential_stage1_prompt(job, example_banks)
-                                raw_stage1 = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
-                                stage1_data, stage1_error = output_formatter.parse_response(raw_stage1)
-                                
-                                if stage1_error:
-                                    st.error(f"Job {job['job_id']} Failed at Stage 1: {stage1_error}")
-                                    continue
-                                
-                                stage1_data_list.append(stage1_data)
-                                
-                                # Stage 2: Distractors
-                                sys_msg_2, user_msg_2 = prompt_engineer.create_sequential_stage2_prompt(job, stage1_data)
-                                raw_stage2 = llm_service.call_llm([sys_msg_2, user_msg_2], user_api_key)
-                                stage2_data, stage2_error = output_formatter.parse_response(raw_stage2)
-                                
-                                if stage2_error:
-                                    st.error(f"Job {job['job_id']} Failed at Stage 2: {stage2_error}")
-                                    continue
-                                
-                                stage2_data_list.append(stage2_data)
-                                
-                                # Stage 3: Quality Validation
-                                sys_msg_3, user_msg_3 = prompt_engineer.create_sequential_stage3_prompt(job, stage1_data, stage2_data)
-                                raw_stage3 = llm_service.call_llm([sys_msg_3, user_msg_3], user_api_key)
-                                stage3_data, stage3_error = output_formatter.parse_response(raw_stage3)
-                                
-                                if stage3_error:
-                                    st.error(f"Job {job['job_id']} Failed at Stage 3: {stage3_error}")
-                                    continue
-                                
-                                stage3_data_list.append(stage3_data)
-                                
-                                # Construct final question
-                                complete_sentence = stage1_data.get("Complete Sentence", "")
-                                correct_answer = stage1_data.get("Correct Answer", "")
-                                question_prompt = complete_sentence.replace(correct_answer, "____")
-                                
-                                options = [
-                                    stage2_data.get("Distractor A", ""),
-                                    stage2_data.get("Distractor B", ""),
-                                    stage2_data.get("Distractor C", ""),
-                                    correct_answer
-                                ]
-                                random.shuffle(options)
-                                correct_letter = chr(65 + options.index(correct_answer))
-                                
-                                final_question = {
-                                    "Item Number": stage1_data.get("Item Number", ""),
-                                    "Assessment Focus": stage1_data.get("Assessment Focus", ""),
-                                    "Question Prompt": question_prompt,
-                                    "Answer A": options[0],
-                                    "Answer B": options[1],
-                                    "Answer C": options[2],
-                                    "Answer D": options[3],
-                                    "Correct Answer": correct_letter,
-                                    "CEFR rating": stage1_data.get("CEFR rating", ""),
-                                    "Category": stage1_data.get("Category", "")
-                                }
-                                generated_questions.append(final_question)
                                 
                             elif job['strategy'] == "Segmented (2-Call)":
                                 sys_msg_1, user_msg_1 = prompt_engineer.create_options_prompt(job, example_banks)
@@ -672,9 +637,9 @@ with tab1:
                             st.session_state.last_batch_strategy = strategy
                             
                             if strategy == "Sequential Batch (3-Call)":
-                                st.session_state.sequential_stage1_data = pd.DataFrame(stage1_data_list)
-                                st.session_state.sequential_stage2_data = pd.DataFrame(stage2_data_list)
-                                st.session_state.sequential_stage3_data = pd.DataFrame(stage3_data_list)
+                                st.session_state.sequential_stage1_data = pd.DataFrame(stage1_data_list) if stage1_data_list else None
+                                st.session_state.sequential_stage2_data = pd.DataFrame(stage2_data_list) if stage2_data_list else None
+                                st.session_state.sequential_stage3_data = pd.DataFrame(stage3_data_list) if stage3_data_list else None
                             
                             csv = final_df.to_csv(index=False).encode('utf-8')
                             st.download_button(
@@ -685,7 +650,14 @@ with tab1:
                             )
                     
                 except Exception as e:
+                    st.session_state.debug_logs.append(f"\nCRITICAL EXCEPTION: {str(e)}")
+                    st.session_state.debug_logs.append(f"Exception type: {type(e).__name__}")
+                    import traceback
+                    st.session_state.debug_logs.append(f"Traceback:\n{traceback.format_exc()}")
                     st.error(f"Error: {e}")
+                    with st.expander("🔍 DEBUG: Exception Details", expanded=True):
+                        st.error(str(e))
+                        st.code(traceback.format_exc())
 
 
 # =============================
@@ -726,14 +698,13 @@ with tab2:
             except Exception as e:
                 st.error(f"Error reading CSV: {e}")
     
-    else:  # Manual input
+    else:
         st.text_area("Paste question data (JSON format)", height=200, key="manual_input")
         if st.button("Load Manual Input"):
             st.info("Manual input parsing not yet implemented.")
     
     st.divider()
     
-    # Display editing interface
     if working_batch is not None:
         if is_sequential_batch:
             st.subheader("📊 Sequential Pipeline View (3 Stages)")
@@ -835,3 +806,29 @@ with tab2:
                 mime="text/csv",
                 key="download_edited"
             )
+
+# =============================
+# TAB 3: DEBUG LOGS
+# =============================
+with tab3:
+    st.header("🐛 Debug Logs")
+    st.caption("Complete execution trace for troubleshooting")
+    
+    if st.session_state.debug_logs:
+        debug_text = "\n".join(st.session_state.debug_logs)
+        st.text_area("Execution Log", debug_text, height=600, key="debug_log_display")
+        
+        # Download debug logs
+        log_data = debug_text.encode('utf-8')
+        st.download_button(
+            label="📥 Download Debug Logs",
+            data=log_data,
+            file_name=f"debug_log_{time.strftime('%Y%m%d_%H%M%S')}.txt",
+            mime="text/plain",
+        )
+    else:
+        st.info("No debug logs available. Generate a batch to see execution details.")
+    
+    if st.button("Clear Debug Logs"):
+        st.session_state.debug_logs = []
+        st.rerun()
