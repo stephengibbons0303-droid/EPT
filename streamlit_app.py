@@ -4,9 +4,10 @@ import random
 import json
 import time
 import test_planner
-import prompt_engineer  # <--- Make sure this line exists!
+import prompt_engineer
 import llm_service
 import output_formatter
+
 # -----------------------------------------------------------------
 # App Configuration & Styling
 # -----------------------------------------------------------------
@@ -16,7 +17,7 @@ st.set_page_config(
     page_title="Agentic Test Generator",
     layout="centered" 
 )
-# [ADD THIS LINE INSTEAD]
+
 # Load the key from Streamlit secrets
 try:
     user_api_key = st.secrets["OPENAI_API_KEY"]
@@ -83,7 +84,7 @@ st.markdown("""
 # -----------------------------------------------------------------
 # MODULE 1: Data Loader (Loads your CSVs)
 # -----------------------------------------------------------------
-@st.cache_data  # <-- Caching is crucial!
+@st.cache_data
 def load_example_banks():
     """
     This is our real data_loader module.
@@ -103,7 +104,7 @@ def load_example_banks():
         return {"grammar": df_g, "vocab": df_v}
     except FileNotFoundError:
         st.error("Error: Example bank CSVs not found. Make sure 'grammar_bank.csv' and 'vocab_bank.csv' are in the same folder as the app.")
-        return None # Return None to signal an error
+        return None
     except Exception as e:
         st.error(f"Error loading CSVs: {e}")
         return None
@@ -241,9 +242,6 @@ def get_topic_suggestions(cefr):
 # Main Streamlit UI
 # -----------------------------------------------------------------
 
-# Apply the custom colors
-apply_custom_css()
-
 # Load the data ONCE at the start of the script.
 example_banks = load_example_banks()
 
@@ -252,10 +250,8 @@ st.title("🤖 AI Test Question Generator")
 # Check if data loaded
 if example_banks is None:
     st.error("STOP: Failed to load example banks. Please check your CSV file names and restart the app.")
-    st.stop() # Halts the app if the CSVs are missing
+    st.stop()
 else:
-    # This is just a quiet confirmation in the terminal,
-    # or you can use st.success() if you prefer a UI message
     print("Example banks loaded successfully.")
 
 st.write("This tool uses a modular AI pipeline to generate test questions based on your exact specifications.")
@@ -277,7 +273,6 @@ with tab1:
         )
         
         # 3. Assessment Focus (Multi-Select)
-        # We need to get the *current* state of the widgets
         cefr = st.session_state.get('cefr', 'A1') 
         q_type_key = st.session_state.get('q_type', 'Grammar')
         
@@ -293,14 +288,10 @@ with tab1:
         cefr = st.selectbox(
             "CEFR Target",
             ("A1", "A2", "B1", "B2", "C1"),
-            key="cefr",
-            # This 'on_change' is a bit advanced but helps clear
-            # the focus list when the CEFR level changes.
-            # You may need a small callback function for it.
-            # For now, we'll keep it simple.
+            key="cefr"
         )
 
-        # NEW: Strategy Selector
+        # Strategy Selector
         strategy = st.selectbox(
             "Generation Strategy",
             ("Holistic (1-Call)", "Segmented (2-Call)"),
@@ -308,12 +299,11 @@ with tab1:
             key="strategy"
         )
 
-        # ... existing Batch Size code ...
         # 6. Batch Size
         batch_size = st.selectbox(
             "Batch Size",
             (1, 5, 10, 20, 30, 40, 50),
-            index=2,  # Defaults to 10
+            index=2,
             key="batch_size"
         )
     
@@ -326,27 +316,21 @@ with tab1:
         placeholder="e.g., 'A business email' or 'A story about a holiday'"
     )
     
-    # Get the *current* CEFR level for the expander title
     current_cefr = st.session_state.get('cefr', 'A1')
-    with st.expander(f"View suggested topics for {current_cefr}...") :
+    with st.expander(f"View suggested topics for {current_cefr}..."):
         suggestions = get_topic_suggestions(current_cefr)
         st.info(" - " + "\n - ".join(suggestions))
     
     st.divider()
 
-    
     # 7. Generate Button
     if st.button("Generate Batch", type="primary", use_container_width=True):
-        # 1. Validate inputs
         if not selected_focus:
             st.error("Please select at least one 'Assessment Focus'.")
         else:
             with st.spinner(f"Generating {batch_size} questions..."):
                 
-                # --- CALL THE REAL PLANNER ---
                 try:
-                    # We pass the UI values directly to the planner module.
-                    # Note: 'strategy' comes from the dropdown we added earlier.
                     job_list = test_planner.create_job_list(
                         total_questions=batch_size,
                         q_type=q_type,
@@ -358,11 +342,8 @@ with tab1:
                     
                     st.success(f"Planner successfully created {len(job_list)} jobs!")
                     
-                    # Display the plan (Debugging step - serves as confirmation)
                     st.subheader("Planned Job List:")
                     st.dataframe(pd.DataFrame(job_list))
-                    
-                   # ... (Previous code: Planner creates job_list) ...
                     
                     # --- MAIN EXECUTION LOOP ---
                     
@@ -374,26 +355,33 @@ with tab1:
                         status_text = st.empty()
 
                         for index, job in enumerate(job_list):
-                            # Update status
                             status_text.text(f"Generating question {index + 1} of {len(job_list)}...")
                             
-                            # 1. ENGINEER PROMPT (The "Expert")
-                            # We check the strategy to decide which function to call
+                            # Check the strategy to decide which function to call
                             if job['strategy'] == "Segmented (2-Call)":
-                                # Call 1: Options
+                                # Call 1: Generate Options
                                 sys_msg_1, user_msg_1 = prompt_engineer.create_options_prompt(job, example_banks)
                                 raw_options = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
                                 
-                                # Call 2: Stem (using the options from Call 1)
-                                sys_msg_2, user_msg_2 = prompt_engineer.create_stem_prompt(job, raw_options)
+                                # Validate options before proceeding to stem generation
+                                options_data, options_error = output_formatter.parse_response(raw_options)
+                                if options_error:
+                                    st.error(f"Job {job['job_id']} Failed at Options stage: {options_error}")
+                                    continue
+                                
+                                # Convert validated options back to JSON string for the stem prompt
+                                options_json_string = json.dumps(options_data)
+                                
+                                # Call 2: Generate Stem using the validated options
+                                sys_msg_2, user_msg_2 = prompt_engineer.create_stem_prompt(job, options_json_string)
                                 raw_response = llm_service.call_llm([sys_msg_2, user_msg_2], user_api_key)
                                 
                             else:
-                                # Holistic (Standard)
+                                # Holistic (Standard single-call approach)
                                 sys_msg, user_msg = prompt_engineer.create_holistic_prompt(job, example_banks)
                                 raw_response = llm_service.call_llm([sys_msg, user_msg], user_api_key)
 
-                            # 2. FORMAT OUTPUT (The "Inspector")
+                            # Format and validate the final output
                             question_data, error = output_formatter.parse_response(raw_response)
                             
                             if error:
@@ -401,7 +389,6 @@ with tab1:
                             else:
                                 generated_questions.append(question_data)
 
-                            # Update progress bar
                             progress_bar.progress((index + 1) / len(job_list))
                         
                         # --- FINAL DISPLAY ---
@@ -411,11 +398,9 @@ with tab1:
                         if generated_questions:
                             st.success(f"Successfully generated {len(generated_questions)} questions!")
                             
-                            # Convert to DataFrame
                             final_df = pd.DataFrame(generated_questions)
                             st.dataframe(final_df)
                             
-                            # CSV Download Button
                             csv = final_df.to_csv(index=False).encode('utf-8')
                             st.download_button(
                                 label="📥 Download Questions as CSV",
@@ -433,7 +418,6 @@ with tab2:
     st.header("🔧 Expert Refinement Controls")
     st.info("This section is planned for Phase 2. It will hold the granular controls (Groups A-D) to refine single, existing questions.")
     
-    # We can lay out the *disabled* controls as a preview
     st.subheader("A. Structural Complexity Controls")
     st.slider("Sentence length slider (words)", 6, 40, 15, disabled=True)
     st.select_slider("Clause complexity slider", ["simple", "complex", "embedded"], disabled=True)
