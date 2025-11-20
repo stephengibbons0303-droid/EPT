@@ -33,6 +33,8 @@ st.markdown("""
     h1 { color: #FFFFFF !important; font-weight: 800 !important; }
     h2, h3 { color: #FFDB58 !important; }
     p, label, .stMarkdown { color: #FFFFFF !important; }
+    
+    /* Button styling */
     .stButton>button {
         background-color: #FFDB58 !important;
         color: #191970 !important;
@@ -44,7 +46,10 @@ st.markdown("""
     }
     .stButton>button:hover {
         background-color: #e5c350 !important;
+        color: #000000 !important;
     }
+    
+    /* Tab styling */
     .stTabs [data-baseweb="tab"] {
         color: #FFFFFF !important;
     }
@@ -53,16 +58,105 @@ st.markdown("""
         color: #FFFFFF !important;
         font-weight: 600 !important;
     }
+    
     hr { border-color: #FFDB58 !important; }
+    
+    /* Alert/Info boxes - white background with dark text */
     .stAlert {
-        background-color: rgba(255, 219, 88, 0.1) !important; 
+        background-color: rgba(255, 255, 255, 0.95) !important; 
         border: 1px solid #FFDB58 !important;
         border-radius: 8px !important;
+        color: #000000 !important;
     }
+    .stAlert p, .stAlert div, .stAlert span {
+        color: #000000 !important;
+    }
+    
+    /* File uploader */
     .stFileUploader {
         border: 2px dashed #FFDB58 !important; 
         border-radius: 8px !important;
         padding: 15px !important;
+    }
+    
+    /* Expander - white background with dark text */
+    .streamlit-expanderHeader {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: #FFFFFF !important;
+    }
+    .streamlit-expanderContent {
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        border: 1px solid #FFDB58 !important;
+    }
+    .streamlit-expanderContent p, 
+    .streamlit-expanderContent div,
+    .streamlit-expanderContent span,
+    .streamlit-expanderContent li {
+        color: #000000 !important;
+    }
+    
+    /* Input fields - white background with dark text */
+    .stTextInput>div>div>input,
+    .stSelectbox>div>div>div,
+    .stMultiSelect>div>div>div {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+    }
+    
+    /* Dropdown menus */
+    [data-baseweb="select"] {
+        background-color: #FFFFFF !important;
+    }
+    [data-baseweb="select"] span {
+        color: #000000 !important;
+    }
+    
+    /* Data editor/table */
+    .stDataFrame {
+        background-color: #FFFFFF !important;
+    }
+    .stDataFrame div[data-testid="stDataFrameResizable"] {
+        color: #000000 !important;
+    }
+    
+    /* Success messages */
+    .stSuccess {
+        background-color: rgba(200, 255, 200, 0.95) !important;
+        color: #000000 !important;
+    }
+    .stSuccess p, .stSuccess div {
+        color: #000000 !important;
+    }
+    
+    /* Warning messages */
+    .stWarning {
+        background-color: rgba(255, 243, 205, 0.95) !important;
+        color: #000000 !important;
+    }
+    .stWarning p, .stWarning div {
+        color: #000000 !important;
+    }
+    
+    /* Error messages */
+    .stError {
+        background-color: rgba(255, 200, 200, 0.95) !important;
+        color: #000000 !important;
+    }
+    .stError p, .stError div {
+        color: #000000 !important;
+    }
+    
+    /* Radio buttons */
+    .stRadio > label {
+        color: #FFFFFF !important;
+    }
+    .stRadio div[role="radiogroup"] label {
+        color: #FFFFFF !important;
+    }
+    
+    /* Captions */
+    .stCaptionContainer, .caption {
+        color: #CCCCCC !important;
     }
 </style>
 """, unsafe_allow_html=True)
