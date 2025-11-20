@@ -87,12 +87,14 @@ def create_sequential_batch_stage1_prompt(job_list, example_banks):
     
     user_msg = f"""
     TASK: Generate complete sentences with correct answers and context clues for {len(job_list)} questions AT ONCE.
-    
-    CRITICAL: You must generate ALL {len(job_list)} questions in a SINGLE response. Each question MUST be thematically different from the others to ensure variety.
-    
-    JOB SPECIFICATIONS:
+
+    ⚠️ CRITICAL REQUIREMENT: You MUST generate EXACTLY {len(job_list)} question objects in your response. Each question MUST be thematically different from the others to ensure variety.
+
+    COUNT VERIFICATION: Your output array MUST contain EXACTLY {len(job_list)} objects - one for each job specification below.
+
+    JOB SPECIFICATIONS (GENERATE ONE QUESTION FOR EACH):
     {json.dumps(job_specs, indent=2)}
-    
+
     INSTRUCTIONS FOR EACH QUESTION:
     1. **ANTI-REPETITION (CRITICAL):** Each question must have a UNIQUE topic and scenario. Do NOT reuse themes, contexts, or vocabulary across questions.
     2. **STYLE/TONE:** Write each sentence in the specified style.
@@ -101,8 +103,8 @@ def create_sequential_batch_stage1_prompt(job_list, example_banks):
     5. **METALINGUISTIC REFLECTION (REQUIRED):** Explicitly identify which portion functions as the context clue and explain why it eliminates alternatives.
     6. **NEGATIVE CONSTRAINT (VERBOSITY):** Sentences must be concise (max 2 sentences). No preambles. Do NOT use imperative commands like "Draw..." or "Please show...".
     7. **NEGATIVE CONSTRAINT (METALANGUAGE):** NEVER use grammar terminology in the sentence itself.
-    
-    Output Format (JSON array with NO WRAPPER):
+
+    Output Format (JSON array with NO WRAPPER - MUST CONTAIN {len(job_list)} OBJECTS):
     [
       {{
         "Item Number": "...",
@@ -124,10 +126,11 @@ def create_sequential_batch_stage1_prompt(job_list, example_banks):
         "CEFR rating": "...",
         "Category": "..."
       }}
+      ... (continue for all {len(job_list)} job specifications - do not stop until you have generated all {len(job_list)} items)
     ]
-    
-    CRITICAL: Output MUST be a JSON array starting with [ and ending with ]. Do NOT wrap the array in an object with a key.
-    
+
+    ⚠️ FINAL REMINDER: Your response MUST be a JSON array with EXACTLY {len(job_list)} objects. Do NOT generate fewer than {len(job_list)} items. Do NOT wrap the array in an object with a key.
+
     REPLICATE THIS STYLE:
     {examples}
     """
@@ -143,12 +146,14 @@ def create_sequential_batch_stage2_prompt(job_list, stage1_outputs):
     
     user_msg = f"""
     TASK: Generate 3 distractors for {len(job_list)} questions AT ONCE.
-    
-    CRITICAL: Generate distractors for ALL {len(job_list)} questions in a SINGLE response. Ensure distractor variety across the batch.
-    
-    INPUT FROM STAGE 1:
+
+    ⚠️ CRITICAL REQUIREMENT: You MUST generate distractor sets for EXACTLY {len(job_list)} questions in your response. Ensure distractor variety across the batch.
+
+    COUNT VERIFICATION: Your output array MUST contain EXACTLY {len(job_list)} objects - one distractor set for each Stage 1 output below.
+
+    INPUT FROM STAGE 1 ({len(stage1_outputs)} questions):
     {json.dumps(stage1_outputs, indent=2)}
-    
+
     RULES FOR EACH QUESTION:
     1. **WORD COUNT LIMIT (CRITICAL):** Each distractor must be MAXIMUM 3 words. This is non-negotiable.
     2. **GRAMMATICAL PARALLELISM:** All distractors must match the grammatical form of the correct answer.
@@ -157,8 +162,8 @@ def create_sequential_batch_stage2_prompt(job_list, stage1_outputs):
     5. **PSYCHOMETRIC APPROPRIATENESS:** Distractors must represent plausible learner errors at the specified CEFR level.
     6. **NEGATIVE CONSTRAINT (LEXICAL OVERLAP):** Do not use any form of the correct answer word or its root in the distractors.
     7. **ANTI-REPETITION:** Avoid using the same distractor words across multiple questions in this batch.
-    
-    Output Format (JSON array with NO WRAPPER):
+
+    Output Format (JSON array with NO WRAPPER - MUST CONTAIN {len(job_list)} OBJECTS):
     [
       {{
         "Item Number": "...",
@@ -178,9 +183,10 @@ def create_sequential_batch_stage2_prompt(job_list, stage1_outputs):
         "Distractor C": "...",
         "Why C is Wrong": "..."
       }}
+      ... (continue for all {len(job_list)} questions - do not stop until you have generated distractors for all {len(job_list)} items)
     ]
-    
-    CRITICAL: Output MUST be a JSON array starting with [ and ending with ]. Do NOT wrap the array in an object.
+
+    ⚠️ FINAL REMINDER: Your response MUST be a JSON array with EXACTLY {len(job_list)} objects. Do NOT generate fewer than {len(job_list)} items. Do NOT wrap the array in an object.
     """
     return system_msg, user_msg
 
@@ -212,10 +218,14 @@ def create_sequential_batch_stage3_prompt(job_list, stage1_outputs, stage2_outpu
     
     user_msg = f"""
     TASK: Evaluate {len(job_list)} complete question items for quality issues using an adversarial stance.
-    
-    COMPLETE QUESTIONS BATCH:
+
+    ⚠️ CRITICAL REQUIREMENT: You MUST generate quality evaluations for EXACTLY {len(job_list)} questions in your response.
+
+    COUNT VERIFICATION: Your output array MUST contain EXACTLY {len(job_list)} objects - one evaluation for each question below.
+
+    COMPLETE QUESTIONS BATCH ({len(complete_questions)} questions):
     {json.dumps(complete_questions, indent=2)}
-    
+
     EVALUATION CRITERIA FOR EACH QUESTION:
     1. **AMBIGUITY TEST:** Can you construct arguments for why a competent learner might reasonably select ANY distractor?
     2. **CONTEXT CLUE STRENGTH:** Does the identified context clue actually and unambiguously invalidate ALL distractors?
@@ -223,13 +233,13 @@ def create_sequential_batch_stage3_prompt(job_list, stage1_outputs, stage2_outpu
     4. **VERBOSITY CHECK:** Is the prompt unnecessarily wordy or contain preambles?
     5. **LEXICAL OVERLAP CHECK:** Does the stem repeat words from the answer options?
     6. **CROSS-QUESTION CHECK:** Are there any repeated themes or excessive similarity between questions in this batch?
-    
+
     INSTRUCTIONS:
     - If ANY evaluation criterion fails, mark item as "Requires Revision"
     - Flag any cross-question repetition issues
     - Provide specific guidance on which element needs modification
-    
-    Output Format (JSON array with NO WRAPPER):
+
+    Output Format (JSON array with NO WRAPPER - MUST CONTAIN {len(job_list)} OBJECTS):
     [
       {{
         "Item Number": "...",
@@ -249,9 +259,10 @@ def create_sequential_batch_stage3_prompt(job_list, stage1_outputs, stage2_outpu
         "Cross-Question Issues": [],
         "Revision Recommendations": "..."
       }}
+      ... (continue for all {len(job_list)} questions - do not stop until you have evaluated all {len(job_list)} items)
     ]
-    
-    CRITICAL: Output MUST be a JSON array starting with [ and ending with ]. Do NOT wrap the array in an object.
+
+    ⚠️ FINAL REMINDER: Your response MUST be a JSON array with EXACTLY {len(job_list)} objects. Do NOT generate fewer than {len(job_list)} items. Do NOT wrap the array in an object.
     """
     return system_msg, user_msg
 
