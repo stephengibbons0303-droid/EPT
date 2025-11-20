@@ -8,17 +8,16 @@ def call_llm(messages, api_key, model="gpt-4-turbo-preview"):
         return "Error: API Key is missing. Please enter it in the sidebar."
 
     try:
-        # Initialize the client dynamically with the user's key
         client = OpenAI(api_key=api_key)
         
         response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": messages[0]}, # System prompt
-                {"role": "user", "content": messages[1]}    # User prompt
+                {"role": "system", "content": messages[0]},
+                {"role": "user", "content": messages[1]}
             ],
             temperature=0.7,
-            response_format={"type": "json_object"} # Force JSON mode
+            response_format={"type": "json_object"}
         )
         return response.choices[0].message.content
         
