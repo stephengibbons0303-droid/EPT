@@ -47,19 +47,18 @@ def get_few_shot_examples(job, example_banks):
 
 
 # --------------------------------------------------------------------------
-# Strategy: Sequential BATCH MODE (3-Call) - NEW DEFAULT STRATEGY
+# Strategy: Sequential BATCH MODE (3-Call) - CORRECTED
 # --------------------------------------------------------------------------
 
 # Sequential Stage 1: BATCH - All stems at once
 def create_sequential_batch_stage1_prompt(job_list, example_banks):
     """
     Generates complete sentences with correct answers and context clues for ALL jobs at once.
-    This allows the model to see all questions and avoid repetition.
+    CORRECTED: Clarified that this is a generation task, not an input validation task.
     """
-    # Get examples once (they're the same across jobs in a batch typically)
     examples = get_few_shot_examples(job_list[0], example_banks) if job_list else ""
     
-    system_msg = "You are an expert ELT content creator. Output ONLY valid JSON."
+    system_msg = "You are an expert ELT content creator. Your task is to generate original test questions. Output ONLY valid JSON."
     
     # Build the batch specification
     job_specs = []
@@ -86,51 +85,56 @@ def create_sequential_batch_stage1_prompt(job_list, example_banks):
         })
     
     user_msg = f"""
-    TASK: Generate complete sentences with correct answers and context clues for {len(job_list)} questions AT ONCE.
-    
-    CRITICAL: You must generate ALL {len(job_list)} questions in a SINGLE response. Each question MUST be thematically different from the others to ensure variety.
-    
-    JOB SPECIFICATIONS:
-    {json.dumps(job_specs, indent=2)}
-    
-    INSTRUCTIONS FOR EACH QUESTION:
-    1. **ANTI-REPETITION (CRITICAL):** Each question must have a UNIQUE topic and scenario. Do NOT reuse themes, contexts, or vocabulary across questions.
-    2. **STYLE/TONE:** Write each sentence in the specified style.
-    3. **INTEGRATED CONSTRUCTION:** Place the correct answer within an authentic sentence appropriate to the CEFR level.
-    4. **CONTEXT CLUE ENGINEERING:** Each sentence MUST contain at least one linguistic element that logically constrains the answer. The context clue must be semantically integrated.
-    5. **METALINGUISTIC REFLECTION (REQUIRED):** Explicitly identify which portion functions as the context clue and explain why it eliminates alternatives.
-    6. **NEGATIVE CONSTRAINT (VERBOSITY):** Sentences must be concise (max 2 sentences). No preambles. Do NOT use imperative commands like "Draw..." or "Please show...".
-    7. **NEGATIVE CONSTRAINT (METALANGUAGE):** NEVER use grammar terminology in the sentence itself.
-    
-    Output Format (JSON array with NO WRAPPER):
-    [
-      {{
-        "Item Number": "...",
-        "Assessment Focus": "...",
-        "Complete Sentence": "...[sentence with answer visible]...",
-        "Correct Answer": "...",
-        "Context Clue Location": "...[which phrase/clause]...",
-        "Context Clue Explanation": "...[why this eliminates alternatives]...",
-        "CEFR rating": "...",
-        "Category": "..."
-      }},
-      {{
-        "Item Number": "...",
-        "Assessment Focus": "...",
-        "Complete Sentence": "...",
-        "Correct Answer": "...",
-        "Context Clue Location": "...",
-        "Context Clue Explanation": "...",
-        "CEFR rating": "...",
-        "Category": "..."
-      }}
-    ]
-    
-    CRITICAL: Output MUST be a JSON array starting with [ and ending with ]. Do NOT wrap the array in an object with a key.
-    
-    REPLICATE THIS STYLE:
-    {examples}
-    """
+TASK: Create {len(job_list)} entirely new test questions from scratch in a single JSON array response.
+
+You will generate {len(job_list)} complete, original questions. This is a content generation task - you are creating new material, not processing existing input.
+
+JOB SPECIFICATIONS (what to create):
+{json.dumps(job_specs, indent=2)}
+
+GENERATION INSTRUCTIONS FOR EACH QUESTION:
+1. **ANTI-REPETITION (CRITICAL):** Each question must have a UNIQUE topic and scenario. Do NOT reuse themes, contexts, or vocabulary across questions.
+2. **STYLE/TONE:** Write each sentence in the specified style from the job specifications.
+3. **INTEGRATED CONSTRUCTION:** Place the correct answer within an authentic sentence appropriate to the CEFR level.
+4. **CONTEXT CLUE ENGINEERING:** Each sentence MUST contain at least one linguistic element that logically constrains the answer. The context clue must be semantically integrated.
+5. **METALINGUISTIC REFLECTION (REQUIRED):** Explicitly identify which portion functions as the context clue and explain why it eliminates alternatives.
+6. **NEGATIVE CONSTRAINT (VERBOSITY):** Sentences must be concise (max 2 sentences). No preambles. Do NOT use imperative commands like "Draw..." or "Please show...".
+7. **NEGATIVE CONSTRAINT (METALANGUAGE):** NEVER use grammar terminology in the sentence itself.
+
+CRITICAL OUTPUT FORMAT REQUIREMENTS:
+- Your response MUST be a JSON array containing exactly {len(job_list)} objects
+- Start your response with [ and end with ]
+- Do NOT wrap the array in an object with keys like "questions" or "results"
+- Do NOT return error messages - generate the content as specified
+
+Output Structure (JSON array with NO wrapper object):
+[
+  {{
+    "Item Number": "...",
+    "Assessment Focus": "...",
+    "Complete Sentence": "...[sentence with answer visible]...",
+    "Correct Answer": "...",
+    "Context Clue Location": "...[which phrase/clause]...",
+    "Context Clue Explanation": "...[why this eliminates alternatives]...",
+    "CEFR rating": "...",
+    "Category": "..."
+  }},
+  {{
+    "Item Number": "...",
+    "Assessment Focus": "...",
+    "Complete Sentence": "...",
+    "Correct Answer": "...",
+    "Context Clue Location": "...",
+    "Context Clue Explanation": "...",
+    "CEFR rating": "...",
+    "Category": "..."
+  }}
+  (... continue for all {len(job_list)} questions)
+]
+
+STYLE REFERENCE (do not copy scenarios, use as format guide only):
+{examples}
+"""
     return system_msg, user_msg
 
 
