@@ -48,8 +48,8 @@ def extract_array_from_response(data):
     # Wrapped in a dict with a single key
     if isinstance(data, dict):
         # Check if LLM returned an error response
-        if "error" in data:
-            error_msg = data.get("error", "Unknown error")
+        if "error" in data or "errorMessage" in data:
+            error_msg = data.get("error") or data.get("errorMessage", "Unknown error")
             return None, f"LLM returned an error: {error_msg}"
 
         # Try common wrapper keys
