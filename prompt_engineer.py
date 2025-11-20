@@ -47,7 +47,186 @@ def get_few_shot_examples(job, example_banks):
 
 
 # --------------------------------------------------------------------------
-# Strategy: Sequential (3-Call) - NEW DEFAULT STRATEGY
+# Strategy: Sequential BATCH MODE (3-Call) - NEW DEFAULT STRATEGY
+# --------------------------------------------------------------------------
+
+# Sequential Stage 1: BATCH - All stems at once
+def create_sequential_batch_stage1_prompt(job_list, example_banks):
+    """
+    Generates complete sentences with correct answers and context clues for ALL jobs at once.
+    This allows the model to see all questions and avoid repetition.
+    """
+    # Get examples once (they're the same across jobs in a batch typically)
+    examples = get_few_shot_examples(job_list[0], example_banks) if job_list else ""
+    
+    system_msg = "You are an expert ELT content creator. Output ONLY valid JSON."
+    
+    # Build the batch specification
+    job_specs = []
+    for job in job_list:
+        raw_context = job.get('context', 'General')
+        main_topic = raw_context
+        micro_style = "general conversation"
+        
+        if " (Style: " in raw_context:
+            try:
+                parts = raw_context.split(" (Style: ")
+                main_topic = parts[0]
+                micro_style = parts[1].replace(")", "")
+            except:
+                pass
+        
+        job_specs.append({
+            "job_id": job['job_id'],
+            "cefr": job['cefr'],
+            "type": job['type'],
+            "focus": job['focus'],
+            "topic": main_topic,
+            "style": micro_style
+        })
+    
+    user_msg = f"""
+    TASK: Generate complete sentences with correct answers and context clues for {len(job_list)} questions AT ONCE.
+    
+    CRITICAL: You must generate ALL {len(job_list)} questions in a SINGLE response. Each question MUST be thematically different from the others to ensure variety.
+    
+    JOB SPECIFICATIONS:
+    {json.dumps(job_specs, indent=2)}
+    
+    INSTRUCTIONS FOR EACH QUESTION:
+    1. **ANTI-REPETITION (CRITICAL):** Each question must have a UNIQUE topic and scenario. Do NOT reuse themes, contexts, or vocabulary across questions.
+    2. **STYLE/TONE:** Write each sentence in the specified style.
+    3. **INTEGRATED CONSTRUCTION:** Place the correct answer within an authentic sentence appropriate to the CEFR level.
+    4. **CONTEXT CLUE ENGINEERING:** Each sentence MUST contain at least one linguistic element that logically constrains the answer. The context clue must be semantically integrated.
+    5. **METALINGUISTIC REFLECTION (REQUIRED):** Explicitly identify which portion functions as the context clue and explain why it eliminates alternatives.
+    6. **NEGATIVE CONSTRAINT (VERBOSITY):** Sentences must be concise (max 2 sentences). No preambles. Do NOT use imperative commands like "Draw..." or "Please show...".
+    7. **NEGATIVE CONSTRAINT (METALANGUAGE):** NEVER use grammar terminology in the sentence itself.
+    
+    Output Format (JSON array):
+    [
+      {{
+        "Item Number": "...",
+        "Assessment Focus": "...",
+        "Complete Sentence": "...[sentence with answer visible]...",
+        "Correct Answer": "...",
+        "Context Clue Location": "...[which phrase/clause]...",
+        "Context Clue Explanation": "...[why this eliminates alternatives]...",
+        "CEFR rating": "...",
+        "Category": "..."
+      }},
+      ... (repeat for all {len(job_list)} questions)
+    ]
+    
+    REPLICATE THIS STYLE:
+    {examples}
+    """
+    return system_msg, user_msg
+
+
+# Sequential Stage 2: BATCH - All distractors at once
+def create_sequential_batch_stage2_prompt(job_list, stage1_outputs):
+    """
+    Generates distractors for ALL questions at once, ensuring variety across the batch.
+    """
+    system_msg = "You are an expert ELT test designer. Output ONLY valid JSON."
+    
+    user_msg = f"""
+    TASK: Generate 3 distractors for {len(job_list)} questions AT ONCE.
+    
+    CRITICAL: Generate distractors for ALL {len(job_list)} questions in a SINGLE response. Ensure distractor variety across the batch.
+    
+    INPUT FROM STAGE 1:
+    {json.dumps(stage1_outputs, indent=2)}
+    
+    RULES FOR EACH QUESTION:
+    1. **WORD COUNT LIMIT (CRITICAL):** Each distractor must be MAXIMUM 3 words. This is non-negotiable.
+    2. **GRAMMATICAL PARALLELISM:** All distractors must match the grammatical form of the correct answer.
+    3. **CONTEXT CLUE AWARENESS:** Each distractor must be definitively eliminated by the context clue identified in Stage 1.
+    4. **JUSTIFICATION REQUIRED:** For each distractor, explain why the specific context clue eliminates it.
+    5. **PSYCHOMETRIC APPROPRIATENESS:** Distractors must represent plausible learner errors at the specified CEFR level.
+    6. **NEGATIVE CONSTRAINT (LEXICAL OVERLAP):** Do not use any form of the correct answer word or its root in the distractors.
+    7. **ANTI-REPETITION:** Avoid using the same distractor words across multiple questions in this batch.
+    
+    Output Format (JSON array):
+    [
+      {{
+        "Item Number": "...",
+        "Distractor A": "...[max 3 words]...",
+        "Why A is Wrong": "...",
+        "Distractor B": "...[max 3 words]...",
+        "Why B is Wrong": "...",
+        "Distractor C": "...[max 3 words]...",
+        "Why C is Wrong": "..."
+      }},
+      ... (repeat for all {len(job_list)} questions)
+    ]
+    """
+    return system_msg, user_msg
+
+
+# Sequential Stage 3: BATCH - All quality validations at once
+def create_sequential_batch_stage3_prompt(job_list, stage1_outputs, stage2_outputs):
+    """
+    Quality validation for ALL questions at once, can identify cross-question issues.
+    """
+    system_msg = "You are an independent quality assurance expert for language testing. Output ONLY valid JSON."
+    
+    # Construct complete questions for review
+    complete_questions = []
+    for i, (job, s1, s2) in enumerate(zip(job_list, stage1_outputs, stage2_outputs)):
+        complete_sentence = s1.get("Complete Sentence", "")
+        correct_answer = s1.get("Correct Answer", "")
+        question_prompt = complete_sentence.replace(correct_answer, "____")
+        
+        complete_questions.append({
+            "Item Number": s1.get("Item Number", ""),
+            "Question Prompt": question_prompt,
+            "Correct Answer": correct_answer,
+            "Distractor 1": s2.get("Distractor A", ""),
+            "Distractor 2": s2.get("Distractor B", ""),
+            "Distractor 3": s2.get("Distractor C", ""),
+            "Context Clue": s1.get("Context Clue Location", ""),
+            "CEFR": job['cefr']
+        })
+    
+    user_msg = f"""
+    TASK: Evaluate {len(job_list)} complete question items for quality issues using an adversarial stance.
+    
+    COMPLETE QUESTIONS BATCH:
+    {json.dumps(complete_questions, indent=2)}
+    
+    EVALUATION CRITERIA FOR EACH QUESTION:
+    1. **AMBIGUITY TEST:** Can you construct arguments for why a competent learner might reasonably select ANY distractor?
+    2. **CONTEXT CLUE STRENGTH:** Does the identified context clue actually and unambiguously invalidate ALL distractors?
+    3. **METALANGUAGE CHECK:** Does the question prompt use any grammar terminology?
+    4. **VERBOSITY CHECK:** Is the prompt unnecessarily wordy or contain preambles?
+    5. **LEXICAL OVERLAP CHECK:** Does the stem repeat words from the answer options?
+    6. **CROSS-QUESTION CHECK:** Are there any repeated themes or excessive similarity between questions in this batch?
+    
+    INSTRUCTIONS:
+    - If ANY evaluation criterion fails, mark item as "Requires Revision"
+    - Flag any cross-question repetition issues
+    - Provide specific guidance on which element needs modification
+    
+    Output Format (JSON array):
+    [
+      {{
+        "Item Number": "...",
+        "Overall Quality": "Pass" or "Requires Revision",
+        "Ambiguity Issues": ["list any distractors that could be justified"],
+        "Context Clue Assessment": "Strong/Weak/Absent - with explanation",
+        "Other Issues": ["list any violations"],
+        "Cross-Question Issues": ["note any similarities to other questions in batch"],
+        "Revision Recommendations": "Specific guidance or 'None'"
+      }},
+      ... (repeat for all {len(job_list)} questions)
+    ]
+    """
+    return system_msg, user_msg
+
+
+# --------------------------------------------------------------------------
+# Strategy: Sequential PER-QUESTION MODE (3-Call) - LEGACY/FALLBACK
 # --------------------------------------------------------------------------
 
 # Sequential Stage 1: Integrated Stem and Context Clue Construction
