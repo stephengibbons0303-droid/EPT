@@ -493,7 +493,13 @@ with tab1:
                                         st.error(f"Stage 1 array extraction failed: {extract_error}")
                                         st.write("Raw response structure:", stage1_data)
                                         break
-                                    
+
+                                    # Validate we got the expected number of items
+                                    if len(stage1_data_list) != len(job_list):
+                                        st.error(f"Stage 1 returned {len(stage1_data_list)} items but expected {len(job_list)} items.")
+                                        st.write("Stage 1 output:", stage1_data_list)
+                                        break
+
                                     status_text.text(f"Stage 2: Generating all distractors...")
                                     
                                     # Stage 2: ALL distractors at once
@@ -510,7 +516,13 @@ with tab1:
                                         st.error(f"Stage 2 array extraction failed: {extract_error}")
                                         st.write("Raw response structure:", stage2_data)
                                         break
-                                    
+
+                                    # Validate we got the expected number of items
+                                    if len(stage2_data_list) != len(job_list):
+                                        st.error(f"Stage 2 returned {len(stage2_data_list)} items but expected {len(job_list)} items.")
+                                        st.write("Stage 2 output:", stage2_data_list)
+                                        break
+
                                     status_text.text(f"Stage 3: Quality validation...")
                                     
                                     # Stage 3: ALL validations at once
@@ -527,7 +539,13 @@ with tab1:
                                         st.error(f"Stage 3 array extraction failed: {extract_error}")
                                         st.write("Raw response structure:", stage3_data)
                                         break
-                                    
+
+                                    # Validate we got the expected number of items
+                                    if len(stage3_data_list) != len(job_list):
+                                        st.error(f"Stage 3 returned {len(stage3_data_list)} items but expected {len(job_list)} items.")
+                                        st.write("Stage 3 output:", stage3_data_list)
+                                        break
+
                                     # Now construct all final questions
                                     for i in range(len(stage1_data_list)):
                                         if i < len(stage2_data_list):

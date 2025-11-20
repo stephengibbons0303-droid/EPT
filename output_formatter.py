@@ -47,6 +47,11 @@ def extract_array_from_response(data):
 
     # Wrapped in a dict with a single key
     if isinstance(data, dict):
+        # Check if LLM returned an error response
+        if "error" in data:
+            error_msg = data.get("error", "Unknown error")
+            return None, f"LLM returned an error: {error_msg}"
+
         # Try common wrapper keys
         for key in ['questions', 'results', 'items', 'data', 'output', 'batch', 'responses']:
             if key in data and isinstance(data[key], list):
