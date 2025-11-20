@@ -412,8 +412,8 @@ with tab1:
 
         strategy = st.selectbox(
             "Generation Strategy",
-            ("Sequential Batch (3-Call)", "Sequential Per-Question (3-Call)", "Holistic (1-Call)", "Segmented (2-Call)"),
-            help="Sequential Batch: Highest quality, anti-repetition (3 calls total). Sequential Per-Question: 3 calls per question. Holistic: Fast. Segmented: Options first, then Stem.",
+            ("Sequential Batch (3-Call)", "Holistic (1-Call)", "Segmented (2-Call)"),
+            help="Sequential Batch: Highest quality, anti-repetition (3 calls total). Holistic: Fast. Segmented: Options first, then Stem.",
             key="strategy"
         )
 
@@ -505,7 +505,7 @@ with tab1:
                                         st.write("**Expected job count:**", len(job_list))
                                         st.write("**Actual items received:**", len(stage1_data_list))
                                         st.write("**Stage 1 output:**", stage1_data_list)
-                                        st.warning("💡 Try reducing batch size or using 'Sequential Per-Question' strategy instead.")
+                                        st.warning("💡 Try reducing batch size to 1-3 questions, or use 'Holistic (1-Call)' strategy instead.")
                                         break
 
                                     status_text.text(f"Stage 2: Generating all distractors...")
@@ -596,70 +596,7 @@ with tab1:
                                     
                                     # Break after processing entire batch
                                     break
-                                
-                            elif job['strategy'] == "Sequential Per-Question (3-Call)":
-                                # PER-QUESTION MODE: Original implementation
-                                # Stage 1: Stem + Context Clue
-                                sys_msg_1, user_msg_1 = prompt_engineer.create_sequential_stage1_prompt(job, example_banks)
-                                raw_stage1 = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
-                                stage1_data, stage1_error = output_formatter.parse_response(raw_stage1)
-                                
-                                if stage1_error:
-                                    st.error(f"Job {job['job_id']} Failed at Stage 1: {stage1_error}")
-                                    continue
-                                
-                                stage1_data_list.append(stage1_data)
-                                
-                                # Stage 2: Distractors
-                                sys_msg_2, user_msg_2 = prompt_engineer.create_sequential_stage2_prompt(job, stage1_data)
-                                raw_stage2 = llm_service.call_llm([sys_msg_2, user_msg_2], user_api_key)
-                                stage2_data, stage2_error = output_formatter.parse_response(raw_stage2)
-                                
-                                if stage2_error:
-                                    st.error(f"Job {job['job_id']} Failed at Stage 2: {stage2_error}")
-                                    continue
-                                
-                                stage2_data_list.append(stage2_data)
-                                
-                                # Stage 3: Quality Validation
-                                sys_msg_3, user_msg_3 = prompt_engineer.create_sequential_stage3_prompt(job, stage1_data, stage2_data)
-                                raw_stage3 = llm_service.call_llm([sys_msg_3, user_msg_3], user_api_key)
-                                stage3_data, stage3_error = output_formatter.parse_response(raw_stage3)
-                                
-                                if stage3_error:
-                                    st.error(f"Job {job['job_id']} Failed at Stage 3: {stage3_error}")
-                                    continue
-                                
-                                stage3_data_list.append(stage3_data)
-                                
-                                # Construct final question
-                                complete_sentence = stage1_data.get("Complete Sentence", "")
-                                correct_answer = stage1_data.get("Correct Answer", "")
-                                question_prompt = complete_sentence.replace(correct_answer, "____")
-                                
-                                options = [
-                                    stage2_data.get("Distractor A", ""),
-                                    stage2_data.get("Distractor B", ""),
-                                    stage2_data.get("Distractor C", ""),
-                                    correct_answer
-                                ]
-                                random.shuffle(options)
-                                correct_letter = chr(65 + options.index(correct_answer))
-                                
-                                final_question = {
-                                    "Item Number": stage1_data.get("Item Number", ""),
-                                    "Assessment Focus": stage1_data.get("Assessment Focus", ""),
-                                    "Question Prompt": question_prompt,
-                                    "Answer A": options[0],
-                                    "Answer B": options[1],
-                                    "Answer C": options[2],
-                                    "Answer D": options[3],
-                                    "Correct Answer": correct_letter,
-                                    "CEFR rating": stage1_data.get("CEFR rating", ""),
-                                    "Category": stage1_data.get("Category", "")
-                                }
-                                generated_questions.append(final_question)
-                                
+
                             elif job['strategy'] == "Segmented (2-Call)":
                                 sys_msg_1, user_msg_1 = prompt_engineer.create_options_prompt(job, example_banks)
                                 raw_options = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
@@ -703,8 +640,8 @@ with tab1:
                             # Store in session state
                             st.session_state.last_batch = final_df
                             st.session_state.last_batch_strategy = strategy
-                            
-                            if strategy in ["Sequential Batch (3-Call)", "Sequential Per-Question (3-Call)"]:
+
+                            if strategy == "Sequential Batch (3-Call)":
                                 st.session_state.sequential_stage1_data = pd.DataFrame(stage1_data_list)
                                 st.session_state.sequential_stage2_data = pd.DataFrame(stage2_data_list)
                                 st.session_state.sequential_stage3_data = pd.DataFrame(stage3_data_list)
@@ -745,7 +682,7 @@ with tab2:
             st.caption(f"Strategy used: {st.session_state.last_batch_strategy}")
             
             working_batch = st.session_state.last_batch.copy()
-            is_sequential_batch = (st.session_state.last_batch_strategy in ["Sequential Batch (3-Call)", "Sequential Per-Question (3-Call)"])
+            is_sequential_batch = (st.session_state.last_batch_strategy == "Sequential Batch (3-Call)")
         else:
             st.warning("No recent batch found. Please generate a batch in the Generator tab first.")
     
