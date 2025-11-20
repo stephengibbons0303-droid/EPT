@@ -37,7 +37,7 @@ st.markdown("""
     /* Button styling */
     .stButton>button {
         background-color: #FFDB58 !important;
-        color: #191970 !important;
+        color: #151556 !important;
         border: 2px solid #191970 !important;
         border-radius: 8px !important; 
         padding: 12px 24px !important;
@@ -46,7 +46,7 @@ st.markdown("""
     }
     .stButton>button:hover {
         background-color: #e5c350 !important;
-        color: #000000 !important;
+        color: #151556 !important;
     }
     
     /* Tab styling */
@@ -66,10 +66,10 @@ st.markdown("""
         background-color: rgba(255, 255, 255, 0.95) !important; 
         border: 1px solid #FFDB58 !important;
         border-radius: 8px !important;
-        color: #000000 !important;
+        color: #151556 !important;
     }
     .stAlert p, .stAlert div, .stAlert span {
-        color: #000000 !important;
+        color: #151556 !important;
     }
     
     /* File uploader */
@@ -92,7 +92,7 @@ st.markdown("""
     .streamlit-expanderContent div,
     .streamlit-expanderContent span,
     .streamlit-expanderContent li {
-        color: #000000 !important;
+        color: #151556 !important;
     }
     
     /* Input fields - white background with dark text */
@@ -100,7 +100,7 @@ st.markdown("""
     .stSelectbox>div>div>div,
     .stMultiSelect>div>div>div {
         background-color: #FFFFFF !important;
-        color: #000000 !important;
+        color: #151556 !important;
     }
     
     /* Dropdown menus */
@@ -108,7 +108,7 @@ st.markdown("""
         background-color: #FFFFFF !important;
     }
     [data-baseweb="select"] span {
-        color: #000000 !important;
+        color: #151556 !important;
     }
     
     /* Data editor/table */
@@ -116,34 +116,34 @@ st.markdown("""
         background-color: #FFFFFF !important;
     }
     .stDataFrame div[data-testid="stDataFrameResizable"] {
-        color: #000000 !important;
+        color: #151556 !important;
     }
     
     /* Success messages */
     .stSuccess {
         background-color: rgba(200, 255, 200, 0.95) !important;
-        color: #000000 !important;
+        color: #151556 !important;
     }
     .stSuccess p, .stSuccess div {
-        color: #000000 !important;
+        color: #151556 !important;
     }
     
     /* Warning messages */
     .stWarning {
         background-color: rgba(255, 243, 205, 0.95) !important;
-        color: #000000 !important;
+        color: #151556 !important;
     }
     .stWarning p, .stWarning div {
-        color: #000000 !important;
+        color: #151556 !important;
     }
     
     /* Error messages */
     .stError {
         background-color: rgba(255, 200, 200, 0.95) !important;
-        color: #000000 !important;
+        color: #151556 !important;
     }
     .stError p, .stError div {
-        color: #000000 !important;
+        color: #151556 !important;
     }
     
     /* Radio buttons */
