@@ -12,7 +12,6 @@ import output_formatter
 # App Configuration & Styling
 # -----------------------------------------------------------------
 
-# Set page config (centered layout, not wide)
 st.set_page_config(
     page_title="Agentic Test Generator",
     layout="centered" 
@@ -25,25 +24,18 @@ except Exception:
     st.error("❌ OpenAI API Key not found in Secrets. Please add it to your Streamlit Cloud settings.")
     st.stop()
     
-# Custom CSS for your color scheme
+# Custom CSS
 st.markdown("""
 <style>
-    /* 1. MAIN BACKGROUND GRADIENT */
     .stApp {
         background: linear-gradient(135deg, #191970 0%, #121245 50%, #191970 100%);
     }
-
-    /* 2. TITLES (White Text for contrast) */
     h1 { color: #FFFFFF !important; font-weight: 800 !important; }
-    h2, h3 { color: #FFDB58 !important; } /* Use yellow for subheaders */
-
-    /* 3. GENERAL TEXT (White Text for contrast on dark background) */
+    h2, h3 { color: #FFDB58 !important; }
     p, label, .stMarkdown { color: #FFFFFF !important; }
-
-    /* 4. BUTTONS (Mustard Yellow/Midnight Blue Contrast) */
     .stButton>button {
-        background-color: #FFDB58 !important; /* Mustard Yellow Background */
-        color: #191970 !important; /* Midnight Blue Text */
+        background-color: #FFDB58 !important;
+        color: #191970 !important;
         border: 2px solid #191970 !important;
         border-radius: 8px !important; 
         padding: 12px 24px !important;
@@ -51,23 +43,17 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(255, 219, 88, 0.5) !important;
     }
     .stButton>button:hover {
-        background-color: #e5c350 !important; /* Slightly darker yellow on hover */
+        background-color: #e5c350 !important;
     }
-
-    /* 5. TABS (Yellow/White Contrast) */
     .stTabs [data-baseweb="tab"] {
-        color: #FFFFFF !important; /* White text for inactive tabs */
+        color: #FFFFFF !important;
     }
     .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        border-bottom: 3px solid #FFDB58 !important; /* Yellow active underline */
-        color: #FFFFFF !important; /* Keep text white */
+        border-bottom: 3px solid #FFDB58 !important;
+        color: #FFFFFF !important;
         font-weight: 600 !important;
     }
-
-    /* 6. HR Line (Accent) */
     hr { border-color: #FFDB58 !important; }
-
-    /* 7. Alerts/File Uploader (Subtle Accent) */
     .stAlert {
         background-color: rgba(255, 219, 88, 0.1) !important; 
         border: 1px solid #FFDB58 !important;
@@ -82,20 +68,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------
-# MODULE 1: Data Loader (Loads your CSVs)
+# Data Loader
 # -----------------------------------------------------------------
 @st.cache_data
 def load_example_banks():
-    """
-    This is our real data_loader module.
-    It loads the CSVs from the root folder.
-    """
     try:
-        # --- Make sure your filenames match these ---
         df_g = pd.read_csv("grammar_bank.csv")
         df_v = pd.read_csv("vocab_bank.csv")
         
-        # We'll also remove the GSE Score column as we discussed
         if "GSE Score" in df_g.columns:
             df_g = df_g.drop(columns=["GSE Score"])
         if "GSE Score" in df_v.columns:
@@ -103,21 +83,17 @@ def load_example_banks():
             
         return {"grammar": df_g, "vocab": df_v}
     except FileNotFoundError:
-        st.error("Error: Example bank CSVs not found. Make sure 'grammar_bank.csv' and 'vocab_bank.csv' are in the same folder as the app.")
+        st.error("Error: Example bank CSVs not found.")
         return None
     except Exception as e:
         st.error(f"Error loading CSVs: {e}")
         return None
 
 # -----------------------------------------------------------------
-# POPULATED FUNCTIONS (For UI Dropdowns)
+# Helper Functions
 # -----------------------------------------------------------------
-
 @st.cache_data
 def get_focus_options(q_type, cefr):
-    """
-    This is the new, EXPANDED function for all Assessment Focus options.
-    """
     if q_type == "Grammar":
         if cefr == "A1":
             return [
@@ -216,14 +192,10 @@ def get_focus_options(q_type, cefr):
                 "Collocation (academic, e.g., 'conduct research')"
             ]
     
-    # Fallback in case something goes wrong
     return ["No options loaded for this level"]
 
 @st.cache_data
 def get_topic_suggestions(cefr):
-    """
-    This is the populated function for all your Topic Suggestions.
-    """
     if cefr == "A1":
         return ["Personal Information", "Family", "Food & Drink", "My Home", "Days & Times"]
     elif cefr == "A2":
@@ -235,44 +207,50 @@ def get_topic_suggestions(cefr):
     elif cefr == "C1":
         return ["Philosophy & Ethics", "Scientific Research", "Global Politics", "Art & Literature", "Psychology"]
     
-    # Fallback
     return ["No topics loaded for this level"]
 
+# Initialize session state
+if 'last_batch' not in st.session_state:
+    st.session_state.last_batch = None
+if 'last_batch_strategy' not in st.session_state:
+    st.session_state.last_batch_strategy = None
+if 'sequential_stage1_data' not in st.session_state:
+    st.session_state.sequential_stage1_data = None
+if 'sequential_stage2_data' not in st.session_state:
+    st.session_state.sequential_stage2_data = None
+if 'sequential_stage3_data' not in st.session_state:
+    st.session_state.sequential_stage3_data = None
+
 # -----------------------------------------------------------------
-# Main Streamlit UI
+# Main UI
 # -----------------------------------------------------------------
 
-# Load the data ONCE at the start of the script.
 example_banks = load_example_banks()
 
 st.title("🤖 AI Test Question Generator")
 
-# Check if data loaded
 if example_banks is None:
-    st.error("STOP: Failed to load example banks. Please check your CSV file names and restart the app.")
+    st.error("STOP: Failed to load example banks.")
     st.stop()
-else:
-    print("Example banks loaded successfully.")
 
 st.write("This tool uses a modular AI pipeline to generate test questions based on your exact specifications.")
 
-# Create the two tabs based on your design
-tab1, tab2 = st.tabs(["🚀 Generator (Phase 1)", "🔧 Expert Controls (Phase 2)"])
+tab1, tab2 = st.tabs(["🚀 Generator", "🔧 Refinement Workshop"])
 
-# --- Tab 1: The Main Generator ---
+# =============================
+# TAB 1: GENERATOR
+# =============================
 with tab1:
     st.header("Batch Generation Settings")
 
     col1, col2 = st.columns(2)
     with col1:
-        # 1. Question Type
         q_type = st.selectbox(
             "Question Type",
             ("Grammar", "Vocabulary"),
             key="q_type"
         )
         
-        # 3. Assessment Focus (Multi-Select)
         cefr = st.session_state.get('cefr', 'A1') 
         q_type_key = st.session_state.get('q_type', 'Grammar')
         
@@ -284,22 +262,19 @@ with tab1:
         )
 
     with col2:
-        # 2. CEFR Target
         cefr = st.selectbox(
             "CEFR Target",
             ("A1", "A2", "B1", "B2", "C1"),
             key="cefr"
         )
 
-        # Strategy Selector
         strategy = st.selectbox(
             "Generation Strategy",
-            ("Holistic (1-Call)", "Segmented (2-Call)"),
-            help="Holistic: Fast. Segmented: High quality (Options first, then Stem).",
+            ("Sequential (3-Call)", "Holistic (1-Call)", "Segmented (2-Call)"),
+            help="Sequential: Highest quality. Holistic: Fast. Segmented: Options first, then Stem.",
             key="strategy"
         )
 
-        # 6. Batch Size
         batch_size = st.selectbox(
             "Batch Size",
             (1, 5, 10, 20, 30, 40, 50),
@@ -309,7 +284,6 @@ with tab1:
     
     st.divider()
 
-    # 4. & 5. Context/Topic and Suggestions
     st.subheader("Context & Topic")
     context_topic = st.text_input(
         "Optional: Enter a specific context or topic",
@@ -323,13 +297,11 @@ with tab1:
     
     st.divider()
 
-    # 7. Generate Button
     if st.button("Generate Batch", type="primary", use_container_width=True):
         if not selected_focus:
             st.error("Please select at least one 'Assessment Focus'.")
         else:
             with st.spinner(f"Generating {batch_size} questions..."):
-                
                 try:
                     job_list = test_planner.create_job_list(
                         total_questions=batch_size,
@@ -340,58 +312,117 @@ with tab1:
                         generation_strategy=strategy 
                     )
                     
-                    st.success(f"Planner successfully created {len(job_list)} jobs!")
-                    
+                    st.success(f"Planner created {len(job_list)} jobs!")
                     st.subheader("Planned Job List:")
                     st.dataframe(pd.DataFrame(job_list))
                     
-                    # --- MAIN EXECUTION LOOP ---
-                    
                     if not user_api_key:
-                        st.error("⛔ Execution Stopped: No API Key provided.")
+                        st.error("⛔ No API Key provided.")
                     else:
                         generated_questions = []
+                        stage1_data_list = []
+                        stage2_data_list = []
+                        stage3_data_list = []
+                        
                         progress_bar = st.progress(0)
                         status_text = st.empty()
 
                         for index, job in enumerate(job_list):
                             status_text.text(f"Generating question {index + 1} of {len(job_list)}...")
                             
-                            # Check the strategy to decide which function to call
-                            if job['strategy'] == "Segmented (2-Call)":
-                                # Call 1: Generate Options
+                            if job['strategy'] == "Sequential (3-Call)":
+                                # Stage 1: Stem + Context Clue
+                                sys_msg_1, user_msg_1 = prompt_engineer.create_sequential_stage1_prompt(job, example_banks)
+                                raw_stage1 = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
+                                stage1_data, stage1_error = output_formatter.parse_response(raw_stage1)
+                                
+                                if stage1_error:
+                                    st.error(f"Job {job['job_id']} Failed at Stage 1: {stage1_error}")
+                                    continue
+                                
+                                stage1_data_list.append(stage1_data)
+                                
+                                # Stage 2: Distractors
+                                sys_msg_2, user_msg_2 = prompt_engineer.create_sequential_stage2_prompt(job, stage1_data)
+                                raw_stage2 = llm_service.call_llm([sys_msg_2, user_msg_2], user_api_key)
+                                stage2_data, stage2_error = output_formatter.parse_response(raw_stage2)
+                                
+                                if stage2_error:
+                                    st.error(f"Job {job['job_id']} Failed at Stage 2: {stage2_error}")
+                                    continue
+                                
+                                stage2_data_list.append(stage2_data)
+                                
+                                # Stage 3: Quality Validation
+                                sys_msg_3, user_msg_3 = prompt_engineer.create_sequential_stage3_prompt(job, stage1_data, stage2_data)
+                                raw_stage3 = llm_service.call_llm([sys_msg_3, user_msg_3], user_api_key)
+                                stage3_data, stage3_error = output_formatter.parse_response(raw_stage3)
+                                
+                                if stage3_error:
+                                    st.error(f"Job {job['job_id']} Failed at Stage 3: {stage3_error}")
+                                    continue
+                                
+                                stage3_data_list.append(stage3_data)
+                                
+                                # Construct final question
+                                complete_sentence = stage1_data.get("Complete Sentence", "")
+                                correct_answer = stage1_data.get("Correct Answer", "")
+                                question_prompt = complete_sentence.replace(correct_answer, "____")
+                                
+                                options = [
+                                    stage2_data.get("Distractor A", ""),
+                                    stage2_data.get("Distractor B", ""),
+                                    stage2_data.get("Distractor C", ""),
+                                    correct_answer
+                                ]
+                                random.shuffle(options)
+                                correct_letter = chr(65 + options.index(correct_answer))
+                                
+                                final_question = {
+                                    "Item Number": stage1_data.get("Item Number", ""),
+                                    "Assessment Focus": stage1_data.get("Assessment Focus", ""),
+                                    "Question Prompt": question_prompt,
+                                    "Answer A": options[0],
+                                    "Answer B": options[1],
+                                    "Answer C": options[2],
+                                    "Answer D": options[3],
+                                    "Correct Answer": correct_letter,
+                                    "CEFR rating": stage1_data.get("CEFR rating", ""),
+                                    "Category": stage1_data.get("Category", "")
+                                }
+                                generated_questions.append(final_question)
+                                
+                            elif job['strategy'] == "Segmented (2-Call)":
                                 sys_msg_1, user_msg_1 = prompt_engineer.create_options_prompt(job, example_banks)
                                 raw_options = llm_service.call_llm([sys_msg_1, user_msg_1], user_api_key)
-                                
-                                # Validate options before proceeding to stem generation
                                 options_data, options_error = output_formatter.parse_response(raw_options)
+                                
                                 if options_error:
                                     st.error(f"Job {job['job_id']} Failed at Options stage: {options_error}")
                                     continue
                                 
-                                # Convert validated options back to JSON string for the stem prompt
                                 options_json_string = json.dumps(options_data)
-                                
-                                # Call 2: Generate Stem using the validated options
                                 sys_msg_2, user_msg_2 = prompt_engineer.create_stem_prompt(job, options_json_string)
                                 raw_response = llm_service.call_llm([sys_msg_2, user_msg_2], user_api_key)
+                                question_data, error = output_formatter.parse_response(raw_response)
                                 
-                            else:
-                                # Holistic (Standard single-call approach)
+                                if error:
+                                    st.error(f"Job {job['job_id']} Failed: {error}")
+                                else:
+                                    generated_questions.append(question_data)
+                                    
+                            else:  # Holistic
                                 sys_msg, user_msg = prompt_engineer.create_holistic_prompt(job, example_banks)
                                 raw_response = llm_service.call_llm([sys_msg, user_msg], user_api_key)
-
-                            # Format and validate the final output
-                            question_data, error = output_formatter.parse_response(raw_response)
-                            
-                            if error:
-                                st.error(f"Job {job['job_id']} Failed: {error}")
-                            else:
-                                generated_questions.append(question_data)
+                                question_data, error = output_formatter.parse_response(raw_response)
+                                
+                                if error:
+                                    st.error(f"Job {job['job_id']} Failed: {error}")
+                                else:
+                                    generated_questions.append(question_data)
 
                             progress_bar.progress((index + 1) / len(job_list))
                         
-                        # --- FINAL DISPLAY ---
                         progress_bar.empty()
                         status_text.empty()
                         
@@ -400,6 +431,15 @@ with tab1:
                             
                             final_df = pd.DataFrame(generated_questions)
                             st.dataframe(final_df)
+                            
+                            # Store in session state
+                            st.session_state.last_batch = final_df
+                            st.session_state.last_batch_strategy = strategy
+                            
+                            if strategy == "Sequential (3-Call)":
+                                st.session_state.sequential_stage1_data = pd.DataFrame(stage1_data_list)
+                                st.session_state.sequential_stage2_data = pd.DataFrame(stage2_data_list)
+                                st.session_state.sequential_stage3_data = pd.DataFrame(stage3_data_list)
                             
                             csv = final_df.to_csv(index=False).encode('utf-8')
                             st.download_button(
@@ -410,19 +450,153 @@ with tab1:
                             )
                     
                 except Exception as e:
-                    st.error(f"Error in Test Planner: {e}")
+                    st.error(f"Error: {e}")
 
 
-# --- Tab 2: The Expert Controls ---
+# =============================
+# TAB 2: REFINEMENT WORKSHOP
+# =============================
 with tab2:
-    st.header("🔧 Expert Refinement Controls")
-    st.info("This section is planned for Phase 2. It will hold the granular controls (Groups A-D) to refine single, existing questions.")
+    st.header("🔧 Refinement Workshop")
+    st.info("Edit and refine generated batches. Sequential batches show all 3 stages for review.")
     
-    st.subheader("A. Structural Complexity Controls")
-    st.slider("Sentence length slider (words)", 6, 40, 15, disabled=True)
-    st.select_slider("Clause complexity slider", ["simple", "complex", "embedded"], disabled=True)
+    st.subheader("Select Input Source")
     
-    st.subheader("C. Distractor Complexity Controls")
-    st.checkbox("Near-synonym trap", disabled=True)
-    st.checkbox("Collocation trap", disabled=True)
-    st.slider("Distractor Plausibility", 0.0, 1.0, 0.5, disabled=True)
+    input_source = st.radio(
+        "Choose your batch source:",
+        ("Recent batch from Generator", "Upload CSV file", "Manual text input"),
+        key="input_source"
+    )
+    
+    working_batch = None
+    is_sequential_batch = False
+    
+    if input_source == "Recent batch from Generator":
+        if st.session_state.last_batch is not None:
+            st.success(f"✓ Recent batch loaded: {len(st.session_state.last_batch)} questions")
+            st.caption(f"Strategy used: {st.session_state.last_batch_strategy}")
+            
+            working_batch = st.session_state.last_batch.copy()
+            is_sequential_batch = (st.session_state.last_batch_strategy == "Sequential (3-Call)")
+        else:
+            st.warning("No recent batch found. Please generate a batch in the Generator tab first.")
+    
+    elif input_source == "Upload CSV file":
+        uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+        if uploaded_file is not None:
+            try:
+                working_batch = pd.read_csv(uploaded_file)
+                st.success(f"✓ File uploaded: {len(working_batch)} questions")
+                is_sequential_batch = False
+            except Exception as e:
+                st.error(f"Error reading CSV: {e}")
+    
+    else:  # Manual input
+        st.text_area("Paste question data (JSON format)", height=200, key="manual_input")
+        if st.button("Load Manual Input"):
+            st.info("Manual input parsing not yet implemented.")
+    
+    st.divider()
+    
+    # Display editing interface
+    if working_batch is not None:
+        if is_sequential_batch:
+            st.subheader("📊 Sequential Pipeline View (3 Stages)")
+            st.caption("View and edit outputs from each stage")
+            
+            st.markdown("### Stage 1: Stem + Context Clue")
+            if st.session_state.sequential_stage1_data is not None:
+                edited_stage1 = st.data_editor(
+                    st.session_state.sequential_stage1_data,
+                    use_container_width=True,
+                    num_rows="dynamic",
+                    key="stage1_editor"
+                )
+                
+                csv1 = edited_stage1.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Download Stage 1 Data",
+                    data=csv1,
+                    file_name="stage1_output.csv",
+                    mime="text/csv",
+                    key="download_stage1"
+                )
+            
+            st.divider()
+            
+            st.markdown("### Stage 2: Distractors")
+            if st.session_state.sequential_stage2_data is not None:
+                edited_stage2 = st.data_editor(
+                    st.session_state.sequential_stage2_data,
+                    use_container_width=True,
+                    num_rows="dynamic",
+                    key="stage2_editor"
+                )
+                
+                csv2 = edited_stage2.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Download Stage 2 Data",
+                    data=csv2,
+                    file_name="stage2_output.csv",
+                    mime="text/csv",
+                    key="download_stage2"
+                )
+            
+            st.divider()
+            
+            st.markdown("### Stage 3: Quality Validation")
+            if st.session_state.sequential_stage3_data is not None:
+                edited_stage3 = st.data_editor(
+                    st.session_state.sequential_stage3_data,
+                    use_container_width=True,
+                    num_rows="dynamic",
+                    key="stage3_editor"
+                )
+                
+                csv3 = edited_stage3.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Download Stage 3 Data",
+                    data=csv3,
+                    file_name="stage3_output.csv",
+                    mime="text/csv",
+                    key="download_stage3"
+                )
+            
+            st.divider()
+            
+            st.markdown("### Final Generated Questions")
+            edited_final = st.data_editor(
+                working_batch,
+                use_container_width=True,
+                num_rows="dynamic",
+                key="final_editor"
+            )
+            
+            csv_final = edited_final.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Final Questions",
+                data=csv_final,
+                file_name="final_questions.csv",
+                mime="text/csv",
+                key="download_final"
+            )
+        
+        else:
+            st.subheader("📝 Simple Edit Mode")
+            st.caption("Edit your batch directly. Changes can be downloaded below.")
+            
+            edited_batch = st.data_editor(
+                working_batch,
+                use_container_width=True,
+                num_rows="dynamic",
+                key="simple_editor"
+            )
+            
+            csv = edited_batch.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Edited Batch",
+                data=csv,
+                file_name="edited_questions.csv",
+                mime="text/csv",
+                key="download_edited"
+            )
