@@ -102,7 +102,7 @@ def create_sequential_batch_stage1_prompt(job_list, example_banks):
     6. **NEGATIVE CONSTRAINT (VERBOSITY):** Sentences must be concise (max 2 sentences). No preambles. Do NOT use imperative commands like "Draw..." or "Please show...".
     7. **NEGATIVE CONSTRAINT (METALANGUAGE):** NEVER use grammar terminology in the sentence itself.
     
-    Output Format (JSON array):
+    Output Format (JSON array with NO WRAPPER):
     [
       {{
         "Item Number": "...",
@@ -114,8 +114,19 @@ def create_sequential_batch_stage1_prompt(job_list, example_banks):
         "CEFR rating": "...",
         "Category": "..."
       }},
-      ... (repeat for all {len(job_list)} questions)
+      {{
+        "Item Number": "...",
+        "Assessment Focus": "...",
+        "Complete Sentence": "...",
+        "Correct Answer": "...",
+        "Context Clue Location": "...",
+        "Context Clue Explanation": "...",
+        "CEFR rating": "...",
+        "Category": "..."
+      }}
     ]
+    
+    CRITICAL: Output MUST be a JSON array starting with [ and ending with ]. Do NOT wrap the array in an object with a key.
     
     REPLICATE THIS STYLE:
     {examples}
@@ -147,7 +158,7 @@ def create_sequential_batch_stage2_prompt(job_list, stage1_outputs):
     6. **NEGATIVE CONSTRAINT (LEXICAL OVERLAP):** Do not use any form of the correct answer word or its root in the distractors.
     7. **ANTI-REPETITION:** Avoid using the same distractor words across multiple questions in this batch.
     
-    Output Format (JSON array):
+    Output Format (JSON array with NO WRAPPER):
     [
       {{
         "Item Number": "...",
@@ -158,8 +169,18 @@ def create_sequential_batch_stage2_prompt(job_list, stage1_outputs):
         "Distractor C": "...[max 3 words]...",
         "Why C is Wrong": "..."
       }},
-      ... (repeat for all {len(job_list)} questions)
+      {{
+        "Item Number": "...",
+        "Distractor A": "...",
+        "Why A is Wrong": "...",
+        "Distractor B": "...",
+        "Why B is Wrong": "...",
+        "Distractor C": "...",
+        "Why C is Wrong": "..."
+      }}
     ]
+    
+    CRITICAL: Output MUST be a JSON array starting with [ and ending with ]. Do NOT wrap the array in an object.
     """
     return system_msg, user_msg
 
@@ -208,7 +229,7 @@ def create_sequential_batch_stage3_prompt(job_list, stage1_outputs, stage2_outpu
     - Flag any cross-question repetition issues
     - Provide specific guidance on which element needs modification
     
-    Output Format (JSON array):
+    Output Format (JSON array with NO WRAPPER):
     [
       {{
         "Item Number": "...",
@@ -219,8 +240,18 @@ def create_sequential_batch_stage3_prompt(job_list, stage1_outputs, stage2_outpu
         "Cross-Question Issues": ["note any similarities to other questions in batch"],
         "Revision Recommendations": "Specific guidance or 'None'"
       }},
-      ... (repeat for all {len(job_list)} questions)
+      {{
+        "Item Number": "...",
+        "Overall Quality": "Pass" or "Requires Revision",
+        "Ambiguity Issues": [],
+        "Context Clue Assessment": "...",
+        "Other Issues": [],
+        "Cross-Question Issues": [],
+        "Revision Recommendations": "..."
+      }}
     ]
+    
+    CRITICAL: Output MUST be a JSON array starting with [ and ending with ]. Do NOT wrap the array in an object.
     """
     return system_msg, user_msg
 
