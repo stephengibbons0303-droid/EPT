@@ -43,13 +43,14 @@ def get_few_shot_examples(job, example_banks):
 
 
 # --------------------------------------------------------------------------
-# Strategy: Sequential BATCH MODE (3-Call) - FINAL VERSION
+# Strategy: Sequential BATCH MODE (3-Call) - SPLIT ARCHITECTURE
 # --------------------------------------------------------------------------
 
 def create_sequential_batch_stage1_prompt(job_list, example_banks):
     """
     Generates complete sentences with correct answers and context clues for ALL jobs at once.
-    Includes question-type-aware constraints for grammatical vs semantic exclusivity.
+    ENHANCED: Includes multi-word phrase splitting strategy and distinguishes between 
+    grammatical versus semantic constraint requirements.
     """
     examples = get_few_shot_examples(job_list[0], example_banks) if job_list else ""
     
@@ -132,13 +133,26 @@ JOB SPECIFICATIONS (one question for each):
 {constraint_instruction}
 
 GENERATION INSTRUCTIONS FOR EACH QUESTION:
+
 1. **ANTI-REPETITION (CRITICAL):** Each question must have a UNIQUE topic and scenario. Do NOT reuse themes, contexts, or vocabulary across questions.
+
 2. **STYLE/TONE:** Write each sentence in the specified style from the job specifications.
-3. **INTEGRATED CONSTRUCTION:** Place the correct answer within an authentic sentence appropriate to the CEFR level.
-4. **CONTEXT CLUE ENGINEERING:** Each sentence MUST contain at least one linguistic element that logically constrains the answer. The context clue must be semantically integrated.
-5. **METALINGUISTIC REFLECTION (REQUIRED):** Explicitly identify which portion functions as the context clue and explain why it eliminates alternatives.
-6. **NEGATIVE CONSTRAINT (VERBOSITY):** Sentences must be concise (max 2 sentences). No preambles. Do NOT use imperative commands.
-7. **NEGATIVE CONSTRAINT (METALANGUAGE):** NEVER use grammar terminology in the sentence itself.
+
+3. **INTEGRATED CONSTRUCTION - GRAMMAR QUESTIONS:** For multi-word grammatical constructions being tested (such as "going to", "have to", "used to"), strategically position elements to create structural constraints. If testing "going to" versus "will", consider placing auxiliary verbs in the stem such as "It's _____ rain" where the contracted auxiliary eliminates "will" structurally. Multi-word answers should be separated across stem and answer slot when this creates grammatical enforcement.
+
+4. **INTEGRATED CONSTRUCTION - VOCABULARY QUESTIONS:** Place the target vocabulary word within an authentic sentence that provides semantic context clues. Ensure the target word is at an appropriate lexical level for the CEFR rating. For higher-level vocabulary items, the sentence context must make the meaning clear enough that learners can discriminate it from phonetically similar alternatives.
+
+5. **CONTEXT CLUE ENGINEERING - GRAMMAR QUESTIONS:** Include grammatical signals that structurally eliminate incorrect options. Time markers such as "yesterday" or "for five years", structural elements such as auxiliary verb placement, or syntactic requirements such as "enjoy" requiring a gerund create grammatical incompatibility rather than semantic implausibility. The context clue must make distractors grammatically wrong, not just semantically odd.
+
+6. **CONTEXT CLUE ENGINEERING - VOCABULARY QUESTIONS:** Include semantic context clues that make only the correct answer logically appropriate while keeping all options grammatically valid. For verb collocations, ensure the full sentence structure eliminates incorrect verbs through constructions such as benefactive phrases. The context clue must make distractors semantically incompatible while remaining grammatically acceptable.
+
+7. **METALINGUISTIC REFLECTION (REQUIRED):** Explicitly identify which portion functions as the context clue and explain whether it creates grammatical elimination or semantic elimination based on question type.
+
+8. **NEGATIVE CONSTRAINT (VERBOSITY):** Sentences must be concise (max 2 sentences). No preambles. Do NOT use imperative commands.
+
+9. **NEGATIVE CONSTRAINT (METALANGUAGE):** NEVER use grammar terminology in the sentence itself.
+
+10. **LOGICAL COHERENCE CHECK:** Review your complete sentence to ensure it is semantically coherent and factually plausible. Avoid nonsensical combinations such as "The meeting was cancelled so we put it off until next month" where the actions contradict each other.
 
 MANDATORY OUTPUT FORMAT:
 {{
@@ -175,46 +189,56 @@ STYLE REFERENCE (format guide only - do not copy scenarios):
     return system_msg, user_msg
 
 
-def create_sequential_batch_stage2_prompt(job_list, stage1_outputs):
+def create_sequential_batch_stage2_grammar_prompt(job_list, stage1_outputs):
     """
-    Generates distractors for ALL questions at once, ensuring variety across the batch.
-    ENHANCED: Enforces Assessment Focus alignment - distractors must match the grammatical category being tested.
+    Generates distractors for GRAMMAR questions only.
+    Focused exclusively on grammatical incorrectness requirements and structural constraints.
     """
-    system_msg = f"""You are an expert ELT test designer. You will generate distractors for exactly {len(job_list)} questions in a single JSON response with a "distractors" key."""
+    system_msg = f"""You are an expert ELT test designer specializing in grammar assessment. You will generate distractors for exactly {len(job_list)} grammar questions in a single JSON response with a "distractors" key."""
     
     user_msg = f"""
-TASK: Generate 3 distractors for ALL {len(job_list)} questions.
+TASK: Generate 3 distractors for ALL {len(job_list)} GRAMMAR questions.
 
 INPUT FROM STAGE 1 (Complete sentences with correct answers):
 {json.dumps(stage1_outputs, indent=2)}
 
-CRITICAL RULE - ASSESSMENT FOCUS ALIGNMENT:
-Each distractor set MUST align with the Assessment Focus specified in Stage 1. Distractors must test the SAME grammatical feature or semantic category as the correct answer.
+SENTENCE-LEVEL VALIDATION PROCEDURE:
 
-Grammar Distinction Examples:
-- Focus: "Future ('going to' vs 'will')" → Distractors MUST be future forms: will, going to, won't, will not
-- Focus: "Past Simple vs Present Perfect" → Distractors MUST contrast these tenses: did/have done, went/have gone
-- Focus: "Conditionals (Type 1 & 2)" → Distractors MUST be conditional forms: will/would, can/could
-- Focus: "Modals of Obligation" → Distractors MUST be obligation modals: must, have to, should, ought to
+For EACH proposed distractor, you MUST:
+1. Take the Complete Sentence from Stage 1
+2. Replace the Correct Answer with your proposed distractor
+3. Evaluate whether the resulting sentence is grammatically correct
+4. REJECT any distractor that produces a grammatically correct sentence
 
-Vocabulary Examples:
-- Focus: "Synonym distinction" → Distractors MUST be near-synonyms testing subtle meaning differences
-- Focus: "Collocation" → Distractors MUST be verbs/prepositions that violate the collocation pattern
-- Focus: "Phrasal Verbs" → Distractors MUST be other phrasal verbs with different particles
+GRAMMAR DISTRACTOR REQUIREMENTS:
 
-DO NOT MIX GRAMMAR CATEGORIES. If testing future tense, do not include obligation modals as distractors.
+**GRAMMATICAL INCORRECTNESS IS REQUIRED:** Distractors must produce grammatically incorrect sentences when inserted into the stem. A distractor that creates a grammatically correct alternative sentence fails validation and must be replaced.
 
-RULES FOR EACH QUESTION:
-1. **ASSESSMENT FOCUS ALIGNMENT (CRITICAL):** All distractors must come from the same grammatical/semantic category as the correct answer.
-2. **WORD COUNT LIMIT (CRITICAL):** Each distractor must be MAXIMUM 3 words. This is non-negotiable.
-3. **GRAMMATICAL PARALLELISM:** All distractors must match the grammatical form of the correct answer.
-   - If correct answer is two words ("going to"), distractors must also be two words ("will be", "won't be")
-   - If correct answer is a single modal, distractors should be single modals from the same category
-4. **CONTEXT CLUE AWARENESS:** Each distractor must be definitively eliminated by the context clue identified in Stage 1.
-5. **JUSTIFICATION REQUIRED:** For each distractor, explain why the specific context clue eliminates it.
-6. **PSYCHOMETRIC APPROPRIATENESS:** Distractors must represent plausible learner errors at the specified CEFR level.
-7. **NEGATIVE CONSTRAINT (LEXICAL OVERLAP):** Do not use any form of the correct answer word or its root in the distractors.
-8. **ANTI-REPETITION:** Avoid using the same distractor words across multiple questions in this batch.
+Example of validation:
+- Stem: "I have lived in this city for five years."
+- Correct Answer: "have lived"
+- INVALID Distractor: "lived" → Creates "I lived in this city for five years." (Grammatically correct, therefore REJECTED)
+- VALID Distractor: "am living" → Creates "I am living in this city for five years." (Grammatically incorrect with duration marker, therefore ACCEPTED)
+
+**ASSESSMENT FOCUS ALIGNMENT FOR DISTINCTION QUESTIONS:** When the Assessment Focus contains "vs" (such as "going to vs will" or "Past Simple vs Present Perfect"), at least ONE distractor must be the contrasting form from the stated distinction. Additional distractors may come from proximate grammatical areas such as related tenses or modal categories.
+
+**AUTHENTIC LEARNER ERRORS ARE ACCEPTABLE:** Distractors may include malformed constructions that represent authentic learner mistakes. Options such as "is study" or "does goes" are valid because they reflect actual errors, even though they are grammatically incomplete or incorrect structures.
+
+**MULTI-WORD CONSTRUCTION SPLITTING:** When the correct answer is part of a multi-word phrase where elements are split between stem and answer slot (such as "It's _____ rain" testing "going to"), distractors must account for structural constraints. Options such as "will" or "might" fail because they cannot follow the contracted auxiliary in the stem.
+
+STRUCTURAL RULES:
+
+1. **WORD COUNT LIMIT:** Each distractor must be MAXIMUM 3 words.
+
+2. **GRAMMATICAL PARALLELISM:** All distractors must match the word count and construction type of the correct answer. If the correct answer is two words, distractors should be two words.
+
+3. **JUSTIFICATION REQUIRED:** For each distractor, explain the specific grammatical violation it creates when inserted into the complete sentence.
+
+4. **PSYCHOMETRIC APPROPRIATENESS:** Distractors must represent plausible errors for learners at the specified CEFR level. Avoid obviously wrong options that no learner would select.
+
+5. **NO LEXICAL OVERLAP:** Do not use any form of the correct answer word or its root in distractors unless testing word form distinctions.
+
+6. **ANTI-REPETITION:** Avoid using identical distractor words across multiple questions in this batch unless required by the Assessment Focus.
 
 MANDATORY OUTPUT FORMAT:
 {{
@@ -222,17 +246,118 @@ MANDATORY OUTPUT FORMAT:
     {{
       "Item Number": "...",
       "Distractor A": "...[max 3 words]...",
-      "Why A is Wrong": "...",
+      "Why A is Wrong": "...[Explain the grammatical violation created]...",
       "Distractor B": "...[max 3 words]...",
-      "Why B is Wrong": "...",
+      "Why B is Wrong": "...[Explain the grammatical violation created]...",
       "Distractor C": "...[max 3 words]...",
-      "Why C is Wrong": "..."
+      "Why C is Wrong": "...[Explain the grammatical violation created]..."
     }},
     ... (exactly {len(job_list)} distractor sets)
   ]
 }}
 
-VERIFICATION: You must generate exactly {len(job_list)} distractor sets, one for each question from Stage 1. Each distractor set must align with its corresponding Assessment Focus.
+VERIFICATION CHECKLIST:
+1. Have you generated exactly {len(job_list)} distractor sets?
+2. For EACH distractor, have you confirmed it produces a grammatically INCORRECT sentence?
+3. For distinction questions, have you included at least one distractor testing the stated contrast?
+4. Have you explained the specific grammatical violation for each distractor?
+"""
+    return system_msg, user_msg
+
+
+def create_sequential_batch_stage2_vocabulary_prompt(job_list, stage1_outputs):
+    """
+    Generates distractors for VOCABULARY questions only.
+    Focused exclusively on semantic incompatibility while maintaining grammatical correctness.
+    """
+    system_msg = f"""You are an expert ELT test designer specializing in vocabulary assessment. You will generate distractors for exactly {len(job_list)} vocabulary questions in a single JSON response with a "distractors" key."""
+    
+    user_msg = f"""
+TASK: Generate 3 distractors for ALL {len(job_list)} VOCABULARY questions.
+
+INPUT FROM STAGE 1 (Complete sentences with correct answers):
+{json.dumps(stage1_outputs, indent=2)}
+
+SENTENCE-LEVEL VALIDATION PROCEDURE:
+
+For EACH proposed distractor, you MUST:
+1. Take the Complete Sentence from Stage 1
+2. Replace the Correct Answer with your proposed distractor
+3. Evaluate whether the resulting sentence is grammatically correct AND semantically coherent
+4. REJECT any distractor that creates a grammatically malformed sentence
+5. REJECT any distractor that creates a semantically plausible sentence
+
+VOCABULARY DISTRACTOR REQUIREMENTS:
+
+**GRAMMATICAL CORRECTNESS IS REQUIRED:** Distractors must produce grammatically correct sentences when inserted into the stem. A distractor that creates a grammatically malformed sentence fails validation and must be replaced.
+
+**SEMANTIC INCOMPATIBILITY IS REQUIRED:** Distractors must be semantically eliminated by context clues while remaining grammatically valid. The complete sentence with the distractor must be grammatically acceptable but semantically implausible, contradictory, or idiomatically wrong.
+
+Example of validation:
+- Stem: "I would _____ stay home tonight than go to the party."
+- Correct Answer: "rather"
+- INVALID Distractor: "prefer" → Creates "I would prefer stay home..." (Grammatically incorrect, missing "to", therefore REJECTED)
+- VALID Distractor: "often" → Creates "I would often stay home..." (Grammatically correct but semantically odd with "than", therefore ACCEPTED)
+
+**LEXICAL LEVEL MATCHING:** When the correct answer is a higher-level vocabulary item for the CEFR rating, include at least ONE distractor that matches this lexical sophistication. Avoid creating distractor sets where the correct answer is obviously more complex than all alternatives.
+
+Example:
+- Target word "postpone" at A2 level is more advanced than "cancel" or "finish"
+- Include distractors such as "possess" or "position" (phonetically similar, lexically matched)
+- This prevents selection based on word sophistication rather than meaning comprehension
+
+**PHONETIC SIMILARITY STRATEGY:** For higher-level vocabulary items (B1 and above), include at least ONE distractor that is phonetically similar to the correct answer but semantically unrelated. This creates genuine vocabulary discrimination tasks.
+
+**FULL SENTENCE CONTEXT TESTING:** For verb collocation questions, evaluate distractors against the complete sentence structure, not merely against the immediate noun. A verb may collocate acceptably with the noun in isolation but fail due to other sentence elements.
+
+Example:
+- "She always _____ breakfast for her children before school."
+- "cooks breakfast" is an acceptable collocation in isolation
+- But "cooks breakfast for her children" is also grammatically and semantically acceptable
+- Better distractors: "eats", "gives", "takes" which fail with the benefactive "for her children" construction
+
+**CATEGORY MATCHING FOR FUNCTIONAL WORDS:** For questions testing adverbs, adjectives, or other functional categories, ensure distractors come from proximate but semantically distinct areas rather than creating near-synonyms.
+
+Example:
+- When testing intensifiers such as "incredibly", use adverbs of manner such as "quickly" or "carefully"
+- Avoid other intensifiers such as "extremely" which would be semantically acceptable
+
+STRUCTURAL RULES:
+
+1. **WORD COUNT LIMIT:** Each distractor must be MAXIMUM 3 words.
+
+2. **GRAMMATICAL PARALLELISM:** All distractors must match the word count and form structure of the correct answer.
+
+3. **JUSTIFICATION REQUIRED:** For each distractor, explain the semantic incompatibility while explicitly confirming grammatical validity.
+
+4. **PSYCHOMETRIC APPROPRIATENESS:** Distractors must represent plausible vocabulary confusions for learners at the specified CEFR level.
+
+5. **NO LEXICAL OVERLAP:** Do not use any form of the correct answer word or its root in distractors.
+
+6. **ANTI-REPETITION:** Avoid using identical distractor words across multiple questions in this batch.
+
+MANDATORY OUTPUT FORMAT:
+{{
+  "distractors": [
+    {{
+      "Item Number": "...",
+      "Distractor A": "...[max 3 words]...",
+      "Why A is Wrong": "...[Explain semantic incompatibility and confirm grammatical validity]...",
+      "Distractor B": "...[max 3 words]...",
+      "Why B is Wrong": "...[Explain semantic incompatibility and confirm grammatical validity]...",
+      "Distractor C": "...[max 3 words]...",
+      "Why C is Wrong": "...[Explain semantic incompatibility and confirm grammatical validity]..."
+    }},
+    ... (exactly {len(job_list)} distractor sets)
+  ]
+}}
+
+VERIFICATION CHECKLIST:
+1. Have you generated exactly {len(job_list)} distractor sets?
+2. For EACH distractor, have you confirmed it produces a grammatically CORRECT sentence?
+3. For EACH distractor, have you confirmed it is semantically incompatible with the context?
+4. For higher-level words, have you included lexically matched or phonetically similar distractors?
+5. For verb collocations, have you tested against the full sentence structure?
 """
     return system_msg, user_msg
 
@@ -240,7 +365,8 @@ VERIFICATION: You must generate exactly {len(job_list)} distractor sets, one for
 def create_sequential_batch_stage3_prompt(job_list, stage1_outputs, stage2_outputs):
     """
     Quality validation for ALL questions at once, can identify cross-question issues.
-    ENHANCED: Specifically checks for Assessment Focus alignment in distractor selection.
+    ENHANCED: Specifically validates sentence-level grammatical correctness testing and 
+    distinguishes between grammar versus vocabulary distractor requirements.
     """
     system_msg = f"""You are an independent quality assurance expert for language testing. You will evaluate exactly {len(job_list)} questions and return your assessments in a JSON object with a "validations" key."""
     
@@ -254,6 +380,7 @@ def create_sequential_batch_stage3_prompt(job_list, stage1_outputs, stage2_outpu
         complete_questions.append({
             "Item Number": s1.get("Item Number", ""),
             "Assessment Focus": s1.get("Assessment Focus", ""),
+            "Category": s1.get("Category", ""),
             "Question Prompt": question_prompt,
             "Correct Answer": correct_answer,
             "Distractor 1": s2.get("Distractor A", ""),
@@ -269,21 +396,44 @@ TASK: Evaluate ALL {len(job_list)} complete question items for quality issues.
 COMPLETE QUESTIONS BATCH:
 {json.dumps(complete_questions, indent=2)}
 
-EVALUATION CRITERIA FOR EACH QUESTION:
-1. **AMBIGUITY TEST:** Can you construct arguments for why a competent learner might reasonably select ANY distractor?
-2. **CONTEXT CLUE STRENGTH:** Does the identified context clue actually and unambiguously invalidate ALL distractors?
-3. **ASSESSMENT FOCUS ALIGNMENT:** Do all distractors align with the Assessment Focus? (e.g., if testing "going to vs will", are distractors all future forms, or do they incorrectly include modals of obligation?)
-4. **GRAMMATICAL CATEGORY CONSISTENCY:** If testing a grammar distinction, are all options from the same grammatical category?
-5. **METALANGUAGE CHECK:** Does the question prompt use any grammar terminology?
-6. **VERBOSITY CHECK:** Is the prompt unnecessarily wordy or contain preambles?
-7. **LEXICAL OVERLAP CHECK:** Does the stem repeat words from the answer options?
-8. **CROSS-QUESTION CHECK:** Are there any repeated themes or excessive similarity between questions in this batch?
+VALIDATION PROCEDURE FOR EACH QUESTION:
 
-INSTRUCTIONS:
-- If ANY evaluation criterion fails, mark item as "Requires Revision"
-- Specifically flag if distractors are from the wrong grammatical/semantic category for the Assessment Focus
-- Flag any cross-question repetition issues
-- Provide specific guidance on which element needs modification
+Step 1: Identify question type from Category field (Grammar or Vocabulary).
+
+Step 2: For EACH distractor, perform sentence reconstruction:
+- Insert the distractor into the Question Prompt to replace the blank
+- Evaluate the resulting complete sentence
+
+Step 3: Apply type-specific validation:
+
+FOR GRAMMAR QUESTIONS:
+- Each distractor should produce a grammatically INCORRECT sentence
+- Flag any distractor that creates a grammatically correct alternative as INVALID
+- Verify that at least one distractor tests the stated Assessment Focus distinction (if applicable)
+- Confirm distractors represent authentic learner errors for the CEFR level
+
+FOR VOCABULARY QUESTIONS:
+- Each distractor should produce a grammatically CORRECT sentence that is semantically wrong
+- Flag any distractor that creates a grammatically malformed sentence as INVALID
+- Flag any distractor that is both grammatically correct AND semantically plausible as INVALID
+- For higher-level target words, verify lexical level matching or phonetic similarity
+- For verb collocations, verify full sentence structure eliminates distractors
+
+EVALUATION CRITERIA:
+
+1. **SENTENCE RECONSTRUCTION TEST:** Does each distractor meet the grammatical correctness requirement for its question type?
+
+2. **AMBIGUITY TEST:** Can a competent learner legitimately select any distractor based on semantic plausibility (after grammatical validation)?
+
+3. **CONTEXT CLUE STRENGTH:** Does the context clue eliminate distractors appropriately (grammatically for grammar questions, semantically for vocabulary questions)?
+
+4. **ASSESSMENT FOCUS ALIGNMENT:** Do distractors appropriately test the stated focus?
+
+5. **LOGICAL COHERENCE:** Is the complete sentence semantically coherent and factually plausible?
+
+6. **METALANGUAGE CHECK:** Does the prompt use grammar terminology?
+
+7. **CROSS-QUESTION CHECK:** Are there repeated themes or excessive similarity between questions?
 
 MANDATORY OUTPUT FORMAT:
 {{
@@ -291,24 +441,25 @@ MANDATORY OUTPUT FORMAT:
     {{
       "Item Number": "...",
       "Overall Quality": "Pass" or "Requires Revision",
-      "Ambiguity Issues": ["list any distractors that could be justified"],
-      "Context Clue Assessment": "Strong/Weak/Absent - with explanation",
-      "Assessment Focus Alignment": "Correct/Incorrect - note if distractors are from wrong category",
-      "Other Issues": ["list any violations"],
-      "Cross-Question Issues": ["note any similarities to other questions in batch"],
-      "Revision Recommendations": "Specific guidance or 'None'"
+      "Sentence Reconstruction Results": "Pass/Fail - identify which distractors fail and why",
+      "Ambiguity Issues": ["list semantically plausible distractors after grammatical validation"],
+      "Context Clue Assessment": "Strong/Weak/Absent - with type-appropriate explanation",
+      "Assessment Focus Alignment": "Correct/Incorrect - note specific issues",
+      "Other Issues": ["list violations of criteria 5-6"],
+      "Cross-Question Issues": ["note similarities to other questions"],
+      "Revision Recommendations": "Specific guidance with replacement suggestions or 'None'"
     }},
     ... (exactly {len(job_list)} validation reports)
   ]
 }}
 
-VERIFICATION: You must provide exactly {len(job_list)} validation reports.
+VERIFICATION: Provide exactly {len(job_list)} validation reports with complete sentence reconstruction analysis.
 """
     return system_msg, user_msg
 
 
 # --------------------------------------------------------------------------
-# Legacy/Fallback Strategies
+# Legacy/Fallback Strategies (maintained for backward compatibility)
 # --------------------------------------------------------------------------
 
 def create_sequential_stage1_prompt(job, example_banks):
@@ -327,7 +478,6 @@ def create_sequential_stage1_prompt(job, example_banks):
         except:
             pass
     
-    # Determine constraint type
     constraint_text = ""
     if job['type'] == 'Grammar' and 'vs' in job.get('focus', '').lower():
         constraint_text = """
@@ -375,7 +525,6 @@ REPLICATE THIS STYLE:
 def create_sequential_stage2_prompt(job, stage1_output):
     system_msg = "You are an expert ELT test designer. Output ONLY valid JSON."
     
-    # Determine focus alignment requirement
     focus = job.get('focus', '')
     alignment_note = ""
     if 'vs' in focus.lower():
