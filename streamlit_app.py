@@ -478,20 +478,27 @@ with tab1:
                                     st.session_state.debug_logs.append(f"Parsed data type: {type(stage1_data)}")
                                     st.session_state.debug_logs.append(f"Parsed data structure: {json.dumps(stage1_data, indent=2)[:500]}...")
                                     
-                                    # Extract array from response
+                                    # Extract array from response - handle new wrapper format
                                     st.session_state.debug_logs.append("\n--- STAGE 1: ARRAY EXTRACTION ---")
-                                    stage1_data_list, extract_error = output_formatter.extract_array_from_response(stage1_data)
                                     
-                                    if extract_error:
-                                        st.session_state.debug_logs.append(f"EXTRACTION ERROR: {extract_error}")
-                                        st.error(f"Stage 1 array extraction failed: {extract_error}")
-                                        with st.expander("🔍 DEBUG: Stage 1 Array Extraction Error", expanded=True):
-                                            st.error(f"Error: {extract_error}")
-                                            st.write("Parsed data structure:", stage1_data)
-                                            st.write("Data type:", type(stage1_data))
-                                            if isinstance(stage1_data, dict):
-                                                st.write("Dictionary keys:", list(stage1_data.keys()))
-                                        break
+                                    # New format has explicit "questions" key
+                                    if isinstance(stage1_data, dict) and "questions" in stage1_data:
+                                        stage1_data_list = stage1_data["questions"]
+                                        st.session_state.debug_logs.append(f"Extracted from 'questions' key: {len(stage1_data_list)} items")
+                                    else:
+                                        # Fallback to original extraction logic
+                                        stage1_data_list, extract_error = output_formatter.extract_array_from_response(stage1_data)
+                                        
+                                        if extract_error:
+                                            st.session_state.debug_logs.append(f"EXTRACTION ERROR: {extract_error}")
+                                            st.error(f"Stage 1 array extraction failed: {extract_error}")
+                                            with st.expander("🔍 DEBUG: Stage 1 Array Extraction Error", expanded=True):
+                                                st.error(f"Error: {extract_error}")
+                                                st.write("Parsed data structure:", stage1_data)
+                                                st.write("Data type:", type(stage1_data))
+                                                if isinstance(stage1_data, dict):
+                                                    st.write("Dictionary keys:", list(stage1_data.keys()))
+                                            break
                                     
                                     st.session_state.debug_logs.append(f"Extracted {len(stage1_data_list)} items from Stage 1")
                                     
@@ -519,14 +526,19 @@ with tab1:
                                         st.error(f"Batch failed at Stage 2: {stage2_error}")
                                         break
                                     
-                                    stage2_data_list, extract_error = output_formatter.extract_array_from_response(stage2_data)
-                                    if extract_error:
-                                        st.session_state.debug_logs.append(f"STAGE 2 EXTRACTION ERROR: {extract_error}")
-                                        st.error(f"Stage 2 array extraction failed: {extract_error}")
-                                        with st.expander("🔍 DEBUG: Stage 2 Extraction Error", expanded=True):
-                                            st.write("Error:", extract_error)
-                                            st.json(stage2_data)
-                                        break
+                                    # Handle new wrapper format with "distractors" key
+                                    if isinstance(stage2_data, dict) and "distractors" in stage2_data:
+                                        stage2_data_list = stage2_data["distractors"]
+                                        st.session_state.debug_logs.append(f"Extracted from 'distractors' key: {len(stage2_data_list)} items")
+                                    else:
+                                        stage2_data_list, extract_error = output_formatter.extract_array_from_response(stage2_data)
+                                        if extract_error:
+                                            st.session_state.debug_logs.append(f"STAGE 2 EXTRACTION ERROR: {extract_error}")
+                                            st.error(f"Stage 2 array extraction failed: {extract_error}")
+                                            with st.expander("🔍 DEBUG: Stage 2 Extraction Error", expanded=True):
+                                                st.write("Error:", extract_error)
+                                                st.json(stage2_data)
+                                            break
                                     
                                     st.session_state.debug_logs.append(f"Extracted {len(stage2_data_list)} items from Stage 2")
                                     
@@ -546,11 +558,16 @@ with tab1:
                                         st.error(f"Batch failed at Stage 3: {stage3_error}")
                                         break
                                     
-                                    stage3_data_list, extract_error = output_formatter.extract_array_from_response(stage3_data)
-                                    if extract_error:
-                                        st.session_state.debug_logs.append(f"STAGE 3 EXTRACTION ERROR: {extract_error}")
-                                        st.error(f"Stage 3 array extraction failed: {extract_error}")
-                                        break
+                                    # Handle new wrapper format with "validations" key
+                                    if isinstance(stage3_data, dict) and "validations" in stage3_data:
+                                        stage3_data_list = stage3_data["validations"]
+                                        st.session_state.debug_logs.append(f"Extracted from 'validations' key: {len(stage3_data_list)} items")
+                                    else:
+                                        stage3_data_list, extract_error = output_formatter.extract_array_from_response(stage3_data)
+                                        if extract_error:
+                                            st.session_state.debug_logs.append(f"STAGE 3 EXTRACTION ERROR: {extract_error}")
+                                            st.error(f"Stage 3 array extraction failed: {extract_error}")
+                                            break
                                     
                                     st.session_state.debug_logs.append(f"Extracted {len(stage3_data_list)} items from Stage 3")
                                     
