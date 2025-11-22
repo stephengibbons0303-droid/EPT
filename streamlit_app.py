@@ -506,11 +506,32 @@ with tab1:
                                         st.write(f"Successfully extracted {len(stage1_data_list)} questions")
                                         st.json(stage1_data_list)
                                     
-                                    # Stage 2
+                                    # ===== STAGE 2 WITH ROUTING - THIS IS THE KEY CHANGE =====
                                     status_text.text(f"Stage 2: Generating all distractors...")
                                     st.session_state.debug_logs.append("\n--- STAGE 2: PROMPT GENERATION ---")
                                     
-                                    sys_msg_2, user_msg_2 = prompt_engineer.create_sequential_batch_stage2_prompt(job_list, stage1_data_list)
+                                    # Determine question type from first job (batch is homogeneous)
+                                    question_type = job_list[0]['type']
+                                    st.session_state.debug_logs.append(f"Question type detected: {question_type}")
+                                    
+                                    # Route to appropriate Stage 2 function
+                                    if question_type == 'Grammar':
+                                        st.session_state.debug_logs.append("Routing to grammar-specific Stage 2 function")
+                                        sys_msg_2, user_msg_2 = prompt_engineer.create_sequential_batch_stage2_grammar_prompt(
+                                            job_list, 
+                                            stage1_data_list
+                                        )
+                                    elif question_type == 'Vocabulary':
+                                        st.session_state.debug_logs.append("Routing to vocabulary-specific Stage 2 function")
+                                        sys_msg_2, user_msg_2 = prompt_engineer.create_sequential_batch_stage2_vocabulary_prompt(
+                                            job_list, 
+                                            stage1_data_list
+                                        )
+                                    else:
+                                        st.error(f"Unknown question type: {question_type}")
+                                        break
+                                    # ===== END OF ROUTING CHANGE =====
+                                    
                                     st.session_state.debug_logs.append(f"User message length: {len(user_msg_2)} chars")
                                     
                                     st.session_state.debug_logs.append("\n--- STAGE 2: API CALL ---")
